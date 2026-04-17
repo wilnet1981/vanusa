@@ -24,7 +24,7 @@ function setProviderDown(providerId: string) {
 
 export async function askAI(prompt: string, system: string) {
   for (const provider of PROVIDERS) {
-    if (!isProviderAvailable(provider.id)) {
+    if (!(await isProviderAvailable(provider.id))) {
       console.log(`[LLM] Pulando ${provider.name} (em cooldown)`);
       continue;
     }
@@ -35,7 +35,6 @@ export async function askAI(prompt: string, system: string) {
       if (response) return response;
     } catch (error: any) {
       console.error(`[LLM] Erro no ${provider.name}:`, error.message);
-      // Se for erro de cota/crédito (podemos filtrar por status 402 ou mensagens específicas)
       if (error.message.includes('quota') || error.message.includes('credit') || error.status === 402 || error.status === 429) {
         setProviderDown(provider.id);
         console.warn(`[LLM] ${provider.name} marcado como DOWN por 24h.`);
@@ -46,7 +45,6 @@ export async function askAI(prompt: string, system: string) {
 }
 
 async function callProvider(id: string, prompt: string, system: string) {
-  // Importação dinâmica para evitar carregar tudo de uma vez
   const { call } = await import(`./providers/${id}`);
   return await call(prompt, system);
 }
