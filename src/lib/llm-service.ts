@@ -1,11 +1,11 @@
 import { getAICooldowns, setAICooldown } from './nocodb';
 
 const PROVIDERS = [
-  { id: 'cloudflare', name: 'Cloudflare' },
-  { id: 'groq', name: 'Groq' },
-  { id: 'mistral', name: 'Mistral' },
   { id: 'deepseek', name: 'Deepseek' },
+  { id: 'groq', name: 'Groq' },
   { id: 'gemini', name: 'Gemini' },
+  { id: 'mistral', name: 'Mistral' },
+  { id: 'cloudflare', name: 'Cloudflare' },
   { id: 'openai', name: 'OpenAI' },
   { id: 'anthropic', name: 'Anthropic' },
 ];
