@@ -1,6 +1,5 @@
 const ZAPSTER_API_KEY = process.env.ZAPSTER_API_KEY;
 const ZAPSTER_INSTANCE_ID = process.env.ZAPSTER_INSTANCE_ID;
-const ZAPSTER_HOST = 'https://api.zapsterapi.com/v1'; // Base URL sugerida
 
 export async function sendTextMessage(to: string, text: string) {
   if (!ZAPSTER_API_KEY || !ZAPSTER_INSTANCE_ID) {
@@ -8,22 +7,20 @@ export async function sendTextMessage(to: string, text: string) {
     return null;
   }
 
-  const url = `${ZAPSTER_HOST}/instance/${ZAPSTER_INSTANCE_ID}/message/sendText`;
+  const url = 'https://api.zapster.com.br/api/v1/messages';
   console.log(`[ZAPSTER] Enviando mensagem para ${to}...`);
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${ZAPSTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'Authorization': ZAPSTER_API_KEY,
       },
       body: JSON.stringify({
-        number: to,      // Padrão 1
-        recipient: to,   // Padrão 2 (visto no seu JSON de entrada)
-        phone: to,       // Padrão 3
-        text: text,      // Padrão 1
-        message: text,   // Padrão 2
+        recipient: to,
+        text: text,
+        instance_id: ZAPSTER_INSTANCE_ID,
       }),
     });
 
