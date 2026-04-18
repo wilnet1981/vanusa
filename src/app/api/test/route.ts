@@ -19,14 +19,16 @@ export async function GET(req: NextRequest) {
     zapster: null,
   };
 
-  // Test NocoDB
+  // Test NocoDB — listar tabelas disponíveis no base
   try {
-    const nocoUrl = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/Leads?limit=1`;
-    const nocoRes = await fetch(nocoUrl, {
-      headers: { 'xc-token': NOCODB_API_TOKEN || '', 'Content-Type': 'application/json' },
+    const metaUrl = `${NOCODB_HOST}/api/v1/db/meta/projects/${NOCODB_PROJECT_ID}/tables`;
+    const metaRes = await fetch(metaUrl, {
+      headers: { 'xc-token': NOCODB_API_TOKEN || '' },
     });
-    const nocoBody = await nocoRes.text();
-    results.nocodb = { status: nocoRes.status, url: nocoUrl, body: nocoBody.slice(0, 300) };
+    const metaBody = await metaRes.text();
+    const metaJson = JSON.parse(metaBody);
+    const tableNames = metaJson?.list?.map((t: any) => ({ id: t.id, title: t.title })) || metaBody.slice(0, 500);
+    results.nocodb = { status: metaRes.status, url: metaUrl, tables: tableNames };
   } catch (e: any) {
     results.nocodb = { error: e.message };
   }
