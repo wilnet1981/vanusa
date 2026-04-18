@@ -26,15 +26,9 @@ export async function GET(req: NextRequest) {
     // v1 read
     const v1Url = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/${TABLE_LEADS}?limit=1`;
     const v1Res = await fetch(v1Url, { headers: nocoHeaders });
-    const v1Body = await v1Res.text();
-    // v2 read
-    const v2Url = `${NOCODB_HOST}/api/v2/tables/${TABLE_LEADS}/records?limit=1`;
-    const v2Res = await fetch(v2Url, { headers: nocoHeaders });
-    const v2Body = await v2Res.text();
-    results.nocodb = {
-      v1_status: v1Res.status, v1_body: v1Body.slice(0, 200),
-      v2_status: v2Res.status, v2_body: v2Body.slice(0, 200),
-    };
+    const v1Json = await v1Res.json();
+    const columns = v1Json?.list?.[0] ? Object.keys(v1Json.list[0]) : [];
+    results.nocodb = { status: v1Res.status, columns, sample: v1Json?.list?.[0] || null };
   } catch (e: any) {
     results.nocodb = { error: e.message };
   }
