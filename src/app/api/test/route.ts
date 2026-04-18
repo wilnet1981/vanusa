@@ -31,11 +31,14 @@ export async function GET(req: NextRequest) {
     results.nocodb = { error: e.message };
   }
 
-  // Test Zapster (sem enviar mensagem real — só verifica a instância)
+  // Test Zapster — envia mensagem real para o próprio número admin
+  const ADMIN_PHONE = process.env.ADMIN_PHONE || '551151921129';
   try {
-    const zapUrl = `https://api.zapsterapi.com/v1/wa/instances/${ZAPSTER_INSTANCE_ID}`;
+    const zapUrl = `https://api.zapsterapi.com/v1/wa/messages`;
     const zapRes = await fetch(zapUrl, {
-      headers: { 'Authorization': ZAPSTER_API_KEY || '' },
+      method: 'POST',
+      headers: { 'Authorization': ZAPSTER_API_KEY || '', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipient: ADMIN_PHONE, text: 'teste de diagnóstico', instance_id: ZAPSTER_INSTANCE_ID }),
     });
     const zapBody = await zapRes.text();
     results.zapster = { status: zapRes.status, url: zapUrl, body: zapBody.slice(0, 300) };
