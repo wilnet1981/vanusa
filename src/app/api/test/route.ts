@@ -19,27 +19,14 @@ export async function GET(req: NextRequest) {
     zapster: null,
   };
 
-  // Test NocoDB — criar lead de teste e deletar
-  const TABLE_LEADS = 'mt1lcy15t45k7oj';
+  // Test NocoDB — listar todos os bases disponíveis na conta
   const nocoHeaders = { 'xc-token': NOCODB_API_TOKEN || '', 'Content-Type': 'application/json' };
-  const baseUrl = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/${TABLE_LEADS}`;
   try {
-    // CREATE
-    const createRes = await fetch(baseUrl, {
-      method: 'POST',
-      headers: nocoHeaders,
-      body: JSON.stringify({ phone: 'TEST_DIAG', status: 'Novo', current_step: 'START', last_message_at: new Date().toISOString(), raw_data: '{}' }),
-    });
-    const createBody = await createRes.text();
-    const created = JSON.parse(createBody);
-    results.nocodb = { create_status: createRes.status, created_id: created?.Id || created?.id, create_body: createBody.slice(0, 300) };
-
-    // DELETE if created
-    if (created?.Id || created?.id) {
-      const delId = created.Id || created.id;
-      const delRes = await fetch(`${baseUrl}/${delId}`, { method: 'DELETE', headers: nocoHeaders });
-      results.nocodb.delete_status = delRes.status;
-    }
+    const listRes = await fetch(`${NOCODB_HOST}/api/v1/db/meta/projects/`, { headers: nocoHeaders });
+    const listBody = await listRes.text();
+    const listJson = JSON.parse(listBody);
+    const bases = listJson?.list?.map((b: any) => ({ id: b.id, title: b.title })) || listBody.slice(0, 500);
+    results.nocodb = { list_status: listRes.status, bases };
   } catch (e: any) {
     results.nocodb = { error: e.message };
   }
