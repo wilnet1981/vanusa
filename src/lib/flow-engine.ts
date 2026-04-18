@@ -28,7 +28,7 @@ const STEPS: Record<string, any> = {
   CAREER_COMMON_1: { message: "Me conte um resumo de sua história pessoal e seu propósito profissional.", next: 'CAREER_COMMON_2' },
   CAREER_COMMON_2: { message: "De 1 a 10 o quão comprometido(a) você está em buscar uma ajuda especializada para Movimentar sua carreira Hoje?", next: 'CAREER_COMMON_3' },
   CAREER_COMMON_3: { message: "De 1 a 10 o quão comprometido(a) você está para investir tempo, dinheiro e empenho em uma parceria para a sua carreira?", next: 'CAREER_COMMON_4' },
-  CAREER_COMMON_4: { message: "QUANTO VALE CHEGAR NO SEU OBJETIVO PROFISSIONAL HOJE?\n\n1. Não tem valor, é inestimável\n2. De R$ 5.700 - R$ 8.300\n3. De R$ 8.300 - R$ 12.500\n4. De R$ 12.500 - R$ 17.800\n5. De R$ 17.800 - R$ 25.100+\n6. De R$ 0 a R$ 5.700", next: 'CAREER_COMMON_5' },
+  CAREER_COMMON_4: { message: "QUANTO VALE CHEGAR NO SEU OBJETIVO PROFISSIONAL HOJE?\n\n1. De R$ 0 a R$ 5.700\n2. De R$ 5.700 - R$ 8.300\n3. De R$ 8.300 - R$ 12.500\n4. De R$ 12.500 - R$ 17.800\n5. De R$ 17.800 - R$ 25.100+\n6. Não tem valor, é inestimável", next: 'CAREER_COMMON_5' },
   END_DESQUALIFICADO: { message: "Você foi desqualificado. A Vanusa vai mandar uma mensagem mais bonitinha, mas por enquanto é isso.", next: 'END_DESQUALIFICADO', terminal: true },
   CAREER_COMMON_5: { message: "O quão você está Comprometido(a) COM VOCÊ MESMO(a) para seguir em uma Sessão Estratégica comigo e ou minha equipe para o seu Plano de Carreira e Objetivo Profissional hoje?", next: 'CAREER_COMMON_6' },
   CAREER_COMMON_6: { message: "Qual seu nível de urgência para falar com o nosso time e fazer sua Mentoria Individual de Carreira?\n\n1. Urgente, se possível em 24 h\n2. Urgente, no máximo em 2 dias uteis\n3. Normal, pode ser em até 1 semana\n4. Pouco Urgente, só estou querendo conhecer", next: 'CAREER_COMMON_7' },
@@ -166,8 +166,8 @@ Resposta do usuário: "${text}"`;
   }
 
   if (currentStep === 'CAREER_COMMON_4') {
-    const isDisqualified = result.extractedValue.includes('6') || result.extractedValue.includes('5.700') || result.extractedValue.toLowerCase().includes('0 a');
-    const isQualified = !isDisqualified && (result.extractedValue.includes('5') || result.extractedValue.includes('25.100'));
+    const isDisqualified = result.extractedValue.trim() === '1' || result.extractedValue.includes('0 a R$ 5.700') || result.extractedValue.includes('0 a 5.700');
+    const isQualified = !isDisqualified;
     if (isDisqualified) {
       updates.status = 'Desqualificado';
       updates.current_step = 'END_DESQUALIFICADO';

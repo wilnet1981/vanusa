@@ -22,21 +22,18 @@ export async function POST(req: NextRequest) {
 
     const BOT_PHONE = (process.env.BOT_PHONE || '').replace(/\D/g, '');
 
-    // Detectar se é mensagem enviada pelo bot (múltiplos campos possíveis do Zapster)
+    // Aceitar apenas eventos de mensagem recebida do Zapster
+    const eventType = payload.type || payload.event_type || payload.data?.type || '';
+    const isIncoming = !eventType || eventType === 'message.received' || eventType.includes('receiv') || eventType.includes('incoming');
     const isFromMe =
       payload.data?.fromMe === true ||
       payload.fromMe === true ||
       payload.data?.from_me === true ||
-      payload.from_me === true ||
-      payload.type === 'outgoing' ||
-      payload.data?.type === 'outgoing' ||
-      payload.direction === 'outbound' ||
-      payload.data?.direction === 'outbound' ||
-      (payload.event_type && !String(payload.event_type).includes('receiv') && !String(payload.event_type).includes('incoming'));
+      payload.from_me === true;
 
-    if (isFromMe) {
-      console.log('[WEBHOOK] Ignorando mensagem enviada pelo próprio bot (fromMe detectado).');
-      return NextResponse.json({ success: true, ignored: 'fromMe' });
+    if (!isIncoming || isFromMe) {
+      console.log(`[WEBHOOK] Ignorando evento não-incoming: type="${eventType}", fromMe=${isFromMe}`);
+      return NextResponse.json({ success: true, ignored: 'not_incoming' });
     }
 
     const phone = (
