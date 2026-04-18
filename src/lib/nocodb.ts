@@ -113,3 +113,7 @@ export async function getAllLeads() {
   const data = await nocoRequest('Leads?sort=-id');
   return data?.list || [];
 }
+
+export async function deleteLead(id: string | number) {
+  return nocoRequest(`Leads/${id}`, { method: 'DELETE' });
+}
