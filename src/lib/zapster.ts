@@ -7,7 +7,7 @@ export async function sendTextMessage(to: string, text: string) {
     return null;
   }
 
-  const url = 'https://api.zapster.com.br/api/v1/messages';
+  const url = 'https://api.zapsterapi.com/v1/wa/messages';
   console.log(`[ZAPSTER] Enviando mensagem para ${to}...`);
 
   try {
