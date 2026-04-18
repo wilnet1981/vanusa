@@ -1,4 +1,4 @@
-import { updateLead, createLead, findClient, getLead } from './nocodb';
+import { updateLead, createLead, findClient, getLead, deleteLead } from './nocodb';
 import { sendTextMessage } from './zapster';
 import { askAI } from './llm-service';
 
@@ -63,6 +63,14 @@ function parseAIResult(text: string) {
 }
 
 export async function handleIncomingMessage(phone: string, text: string) {
+  if (text.trim().toLowerCase() === '#sair') {
+    const existing = await getLead(phone);
+    if (existing) await deleteLead(existing.id);
+    await trySendMessage(phone, 'Conversa encerrada e dados removidos. Digite qualquer mensagem para recomeçar do início.');
+    console.log(`[FLOW] #sair executado para ${phone}`);
+    return;
+  }
+
   const client = await findClient(phone);
   if (client) {
     await trySendMessage(phone, `Olá ${client.name}! Sou a assistente da Vanusa. Como você já é nosso aluno, por favor entre em contato pelo número de suporte: ${ADMIN_PHONE}`);
