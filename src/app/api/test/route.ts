@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   // Test NocoDB
   try {
-    const nocoUrl = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/vwjferwfr98mfb82?limit=1`;
+    const nocoUrl = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/Leads?limit=1`;
     const nocoRes = await fetch(nocoUrl, {
       headers: { 'xc-token': NOCODB_API_TOKEN || '', 'Content-Type': 'application/json' },
     });
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     const zapUrl = `https://api.zapsterapi.com/v1/wa/messages`;
     const zapRes = await fetch(zapUrl, {
       method: 'POST',
-      headers: { 'Authorization': ZAPSTER_API_KEY || '', 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${ZAPSTER_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ recipient: ADMIN_PHONE, text: 'teste de diagnóstico', instance_id: ZAPSTER_INSTANCE_ID }),
     });
     const zapBody = await zapRes.text();

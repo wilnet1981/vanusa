@@ -18,7 +18,7 @@ export async function sendTextMessage(to: string, text: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': ZAPSTER_API_KEY,
+        'Authorization': `Bearer ${ZAPSTER_API_KEY}`,
       },
       body: JSON.stringify({
         recipient: to,
