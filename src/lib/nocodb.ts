@@ -14,6 +14,7 @@ async function nocoRequest(path: string, options: RequestInit = {}) {
   }
 
   const url = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/${path}`;
+  console.log(`[NOCODB] URL: ${url}`);
 
   try {
     const controller = new AbortController();
