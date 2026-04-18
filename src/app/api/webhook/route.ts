@@ -18,49 +18,56 @@ export async function POST(req: NextRequest) {
       payload = Object.fromEntries(formData.entries());
     }
 
-    console.log('[WEBHOOK] Payload recebido:', JSON.stringify(payload, null, 2));
+    console.log('[WEBHOOK] Payload recebido:', JSON.stringify(payload));
+
+    const BOT_PHONE = (process.env.BOT_PHONE || '').replace(/\D/g, '');
+
+    // Detectar se é mensagem enviada pelo bot (múltiplos campos possíveis do Zapster)
+    const isFromMe =
+      payload.data?.fromMe === true ||
+      payload.fromMe === true ||
+      payload.data?.from_me === true ||
+      payload.from_me === true ||
+      payload.type === 'outgoing' ||
+      payload.data?.type === 'outgoing' ||
+      payload.direction === 'outbound' ||
+      payload.data?.direction === 'outbound' ||
+      (payload.event_type && !String(payload.event_type).includes('receiv') && !String(payload.event_type).includes('incoming'));
+
+    if (isFromMe) {
+      console.log('[WEBHOOK] Ignorando mensagem enviada pelo próprio bot (fromMe detectado).');
+      return NextResponse.json({ success: true, ignored: 'fromMe' });
+    }
 
     const phone = (
-      payload.data?.sender?.phone_number || 
-      payload.sender || 
-      payload.data?.sender?.id || 
-      payload.from || 
-      payload.recipient || 
+      payload.data?.sender?.phone_number ||
+      payload.sender ||
+      payload.data?.sender?.id ||
+      payload.from ||
       ''
     ).replace(/\D/g, '');
 
     const text = (
-      payload.data?.content?.text || 
-      payload.text || 
-      payload.body || 
-      payload.message || 
+      payload.data?.content?.text ||
+      payload.text ||
+      payload.body ||
+      payload.message ||
       ''
     );
 
-    const instanceId = payload.instance_id || payload.data?.instance_id || payload.instanceId;
+    console.log(`[WEBHOOK] Extraído -> Fone: ${phone}, Texto: "${text}"`);
 
-    console.log(`[WEBHOOK] Extraído -> Fone: ${phone}, Texto: ${text}, Instância: ${instanceId}`);
+    // Ignorar se o número for o próprio bot
+    if (BOT_PHONE && phone === BOT_PHONE) {
+      console.log(`[WEBHOOK] Ignorando — número ${phone} é o próprio bot.`);
+      return NextResponse.json({ success: true, ignored: 'bot_phone' });
+    }
 
     if (phone && text) {
-      const isFromMe =
-        payload.data?.fromMe === true ||
-        payload.fromMe === true ||
-        payload.data?.from_me === true ||
-        payload.from_me === true ||
-        payload.type === 'outgoing' ||
-        payload.data?.type === 'outgoing' ||
-        payload.direction === 'outbound' ||
-        payload.data?.direction === 'outbound';
+      console.log(`[WEBHOOK] Chamando handleIncomingMessage para ${phone}...`);
+      await handleIncomingMessage(phone, text);
+      console.log(`[WEBHOOK] handleIncomingMessage concluído para ${phone}.`);
 
-      console.log(`[WEBHOOK] fromMe=${isFromMe}, payload.data.fromMe=${payload.data?.fromMe}, payload.fromMe=${payload.fromMe}, type=${payload.type || payload.data?.type}`);
-
-      if (!isFromMe) {
-        console.log(`[WEBHOOK] Chamando handleIncomingMessage para ${phone}...`);
-        await handleIncomingMessage(phone, text);
-        console.log(`[WEBHOOK] handleIncomingMessage concluído para ${phone}.`);
-      } else {
-        console.log('[WEBHOOK] Ignorando mensagem enviada pelo próprio bot.');
-      }
     } else {
       console.log(`[WEBHOOK] Sem fone/texto — ignorando. (fone="${phone}", texto="${text}")`);
     }
