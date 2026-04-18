@@ -53,9 +53,9 @@ async function nocoRequest(path: string, options: RequestInit = {}, retries = 3)
   return null;
 }
 
-const TABLE_CLIENTS = 'mx8qhy2dx2owmt8';
-const TABLE_LEADS = 'mgw8p6jqr47bagw';
-const TABLE_AISTATUS = 'm076e9wgav3kodz';
+const TABLE_CLIENTS = 'mzdbkpo6pf1267l';
+const TABLE_LEADS = 'mt1lcy15t45k7oj';
+const TABLE_AISTATUS = 'msq9m956e0wx3cx';
 
 export async function findClient(phone: string) {
   const data = await nocoRequest(`${TABLE_CLIENTS}?where=(phone,eq,${phone})&limit=1`);

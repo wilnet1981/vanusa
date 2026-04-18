@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   };
 
   // Test NocoDB — criar lead de teste e deletar
-  const TABLE_LEADS = 'mgw8p6jqr47bagw';
+  const TABLE_LEADS = 'mt1lcy15t45k7oj';
   const nocoHeaders = { 'xc-token': NOCODB_API_TOKEN || '', 'Content-Type': 'application/json' };
   const baseUrl = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/${TABLE_LEADS}`;
   try {
