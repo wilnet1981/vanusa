@@ -65,7 +65,7 @@ function parseAIResult(text: string) {
 export async function handleIncomingMessage(phone: string, text: string) {
   if (text.trim().toLowerCase() === '#sair') {
     const existing = await getLead(phone);
-    if (existing) await deleteLead(existing.id);
+    if (existing) await deleteLead(existing.Id || existing.id);
     await trySendMessage(phone, 'Conversa encerrada e dados removidos. Digite qualquer mensagem para recomeçar do início.');
     console.log(`[FLOW] #sair executado para ${phone}`);
     return;
@@ -151,7 +151,7 @@ Resposta do usuário: "${text}"`;
   updates.current_step = nextStep;
 
   const [updateResult, sent] = await Promise.all([
-    updateLead(lead.id, updates).catch((e: any) => { console.error('[FLOW] Erro ao salvar lead no NocoDB:', e.message); return null; }),
+    updateLead(lead.Id || lead.id, updates).catch((e: any) => { console.error('[FLOW] Erro ao salvar lead no NocoDB:', e.message); return null; }),
     trySendMessage(phone, STEPS[nextStep].message)
   ]);
 

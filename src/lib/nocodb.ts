@@ -57,30 +57,49 @@ const TABLE_CLIENTS = 'mzdbkpo6pf1267l';
 const TABLE_LEADS = 'mt1lcy15t45k7oj';
 const TABLE_AISTATUS = 'msq9m956e0wx3cx';
 
+// Mapeamento: nomes internos do código → colunas reais do NocoDB
+const COL = {
+  phone: 'Telefone',
+  status: 'Status',
+  current_step: 'Passo Atual',
+  categoria: 'Categoria',
+  name: 'Nome Completo',
+  cargo: 'Cargo Atual/Pretendido',
+  remuneracao: 'Remuneração',
+  investimento: 'Investimento Disponível',
+  objetivo: 'Objetivo Principal',
+  urgencia: 'Nível de Urgência',
+  comprometimento: 'Comprometimento (1-10)',
+  last_message_at: 'Última Mensagem',
+  raw_data: 'Dados Brutos (JSON)',
+};
+
 export async function findClient(phone: string) {
-  const data = await nocoRequest(`${TABLE_CLIENTS}?where=(phone,eq,${phone})&limit=1`);
+  const data = await nocoRequest(`${TABLE_CLIENTS}?where=(${COL.phone},eq,${phone})&limit=1`);
   return data?.list?.[0] || null;
 }
 
 export async function getLead(phone: string) {
-  const data = await nocoRequest(`${TABLE_LEADS}?where=(phone,eq,${phone})&limit=1`);
+  const data = await nocoRequest(`${TABLE_LEADS}?where=(${COL.phone},eq,${phone})&limit=1`);
   const lead = data?.list?.[0] || null;
-  if (lead && lead.raw_data) {
-    lead.responses = JSON.parse(lead.raw_data);
+  if (lead && lead[COL.raw_data]) {
+    try { lead.responses = JSON.parse(lead[COL.raw_data]); } catch { lead.responses = {}; }
   } else if (lead) {
     lead.responses = {};
+  }
+  if (lead) {
+    lead.current_step = lead[COL.current_step];
   }
   return lead;
 }
 
 export async function createLead(phone: string, initialData: any) {
-  const body = {
-    phone,
-    status: 'Novo',
-    current_step: 'START',
-    last_message_at: new Date().toISOString(),
-    raw_data: JSON.stringify({}),
-    ...initialData
+  const body: any = {
+    [COL.phone]: phone,
+    [COL.status]: 'Novo',
+    [COL.current_step]: initialData.current_step || 'START',
+    [COL.last_message_at]: new Date().toISOString(),
+    [COL.raw_data]: JSON.stringify({}),
   };
   return nocoRequest(TABLE_LEADS, {
     method: 'POST',
@@ -89,18 +108,22 @@ export async function createLead(phone: string, initialData: any) {
 }
 
 export async function updateLead(id: string | number, data: any) {
-  const updatePayload: any = { ...data };
-  
-  if (data.responses) {
-    updatePayload.raw_data = JSON.stringify(data.responses);
-    if (data.responses.START) updatePayload.name = data.responses.START;
-    if (data.responses.RECOLOCACAO_CARGO) updatePayload.cargo = data.responses.RECOLOCACAO_CARGO;
-    if (data.responses.RECOLOCACAO_REMUNERACAO) updatePayload.remuneracao = data.responses.RECOLOCACAO_REMUNERACAO;
-    if (data.responses.RECOLOCACAO_INVESTIMENT) updatePayload.investimento = data.responses.RECOLOCACAO_INVESTIMENT;
-    if (data.responses.TRIAGE_WISH) updatePayload.objetivo = data.responses.TRIAGE_WISH;
-  }
+  const updatePayload: any = {};
 
-  updatePayload.last_message_at = new Date().toISOString();
+  if (data.current_step) updatePayload[COL.current_step] = data.current_step;
+  if (data.status) updatePayload[COL.status] = data.status;
+  if (data.responses) {
+    updatePayload[COL.raw_data] = JSON.stringify(data.responses);
+    if (data.responses.START) updatePayload[COL.name] = data.responses.START;
+    if (data.responses.CAREER_RECOLOC_1) updatePayload[COL.cargo] = data.responses.CAREER_RECOLOC_1;
+    if (data.responses.CAREER_MUDAR_1) updatePayload[COL.cargo] = data.responses.CAREER_MUDAR_1;
+    if (data.responses.CAREER_RECOLOC_2) updatePayload[COL.remuneracao] = data.responses.CAREER_RECOLOC_2;
+    if (data.responses.CAREER_MUDAR_2) updatePayload[COL.remuneracao] = data.responses.CAREER_MUDAR_2;
+    if (data.responses.CAREER_RECOLOC_3) updatePayload[COL.investimento] = data.responses.CAREER_RECOLOC_3;
+    if (data.responses.TRIAGE_WISH) updatePayload[COL.objetivo] = data.responses.TRIAGE_WISH;
+    if (data.responses.CAREER_COMMON_6) updatePayload[COL.urgencia] = data.responses.CAREER_COMMON_6;
+  }
+  updatePayload[COL.last_message_at] = new Date().toISOString();
 
   return nocoRequest(`${TABLE_LEADS}/${id}`, {
     method: 'PATCH',
@@ -122,7 +145,7 @@ export async function setAICooldown(providerId: string, until: Date) {
   const record = existing?.list?.[0];
 
   if (record) {
-    return nocoRequest(`${TABLE_AISTATUS}/${record.id}`, {
+    return nocoRequest(`${TABLE_AISTATUS}/${record.Id || record.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ cooldown_until: until.toISOString() }),
     });
@@ -135,7 +158,7 @@ export async function setAICooldown(providerId: string, until: Date) {
 }
 
 export async function getAllLeads() {
-  const data = await nocoRequest(`${TABLE_LEADS}?sort=-id`);
+  const data = await nocoRequest(`${TABLE_LEADS}?sort=-Id`);
   return data?.list || [];
 }
 
