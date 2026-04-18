@@ -171,11 +171,17 @@ Resposta do usuário: "${text}"`;
 
   updates.current_step = nextStep;
 
-  const [updateResult, sent] = await Promise.all([
-    updateLead(lead.Id || lead.id, updates).catch((e: any) => { console.error('[FLOW] Erro ao salvar lead no NocoDB:', e.message); return null; }),
-    trySendMessage(phone, STEPS[nextStep].message)
-  ]);
+  const updateResult = await updateLead(lead.Id || lead.id, updates).catch((e: any) => {
+    console.error('[FLOW] Erro ao salvar lead no NocoDB:', e.message);
+    return null;
+  });
 
-  if (!updateResult) console.warn('[FLOW] NocoDB falhou ao salvar — estado pode não persistir.');
+  if (!updateResult) {
+    console.warn('[FLOW] NocoDB falhou ao salvar — abortando envio para não dessincronizar estado.');
+    await trySendMessage(phone, 'Desculpe, tive um problema interno. Por favor, repita sua resposta.');
+    return;
+  }
+
+  const sent = await trySendMessage(phone, STEPS[nextStep].message);
   if (!sent) console.error(`[FLOW] Falha ao enviar mensagem do passo '${nextStep}' para ${phone}`);
 }
