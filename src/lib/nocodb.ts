@@ -69,7 +69,17 @@ const COL = {
   investimento: 'Investimento Disponível',
   objetivo: 'Objetivo Principal',
   email: 'email',
+  trabalhando: 'Trabalhando Atualmente',
+  motivo: 'Motivo da Conversa',
+  historia: 'História Pessoal',
+  comprometimento_carreira: 'Comprometimento Carreira',
+  comprometimento_investimento: 'Comprometimento Investimento',
+  valor_objetivo: 'Valor do Objetivo',
+  comprometimento_sessao: 'Comprometimento Sessão',
   urgencia: 'Nível de Urgência',
+  impedimentos: 'Impedimentos',
+  compromisso_presenca: 'Compromisso Presença',
+  atua_conselho: 'Atua em Conselho',
   comprometimento: 'Comprometimento (1-10)',
   last_message_at: 'Última Mensagem',
   raw_data: 'Dados Brutos (JSON)',
@@ -117,13 +127,24 @@ export async function updateLead(id: string | number, data: any) {
     updatePayload[COL.raw_data] = JSON.stringify(data.responses);
     if (data.responses.START) updatePayload[COL.name] = data.responses.START;
     if (data.responses.START_EMAIL) updatePayload[COL.email] = data.responses.START_EMAIL;
-    if (data.responses.CAREER_RECOLOC_1) updatePayload[COL.cargo] = data.responses.CAREER_RECOLOC_1;
-    if (data.responses.CAREER_MUDAR_1) updatePayload[COL.cargo] = data.responses.CAREER_MUDAR_1;
-    if (data.responses.CAREER_RECOLOC_2) updatePayload[COL.remuneracao] = data.responses.CAREER_RECOLOC_2;
-    if (data.responses.CAREER_MUDAR_2) updatePayload[COL.remuneracao] = data.responses.CAREER_MUDAR_2;
-    if (data.responses.CAREER_RECOLOC_3) updatePayload[COL.investimento] = data.responses.CAREER_RECOLOC_3;
+    if (data.responses.TRIAGE_WORKING) updatePayload[COL.trabalhando] = data.responses.TRIAGE_WORKING;
     if (data.responses.TRIAGE_WISH) updatePayload[COL.objetivo] = data.responses.TRIAGE_WISH;
+    if (data.responses.CONSELHEIRO_ATIVO) updatePayload[COL.atua_conselho] = data.responses.CONSELHEIRO_ATIVO;
+    if (data.responses.CAREER_RECOLOC_1) updatePayload[COL.cargo] = data.responses.CAREER_RECOLOC_1;
+    if (data.responses.CAREER_RECOLOC_2) updatePayload[COL.remuneracao] = data.responses.CAREER_RECOLOC_2;
+    if (data.responses.CAREER_RECOLOC_3) updatePayload[COL.investimento] = data.responses.CAREER_RECOLOC_3;
+    if (data.responses.CAREER_RECOLOC_4) updatePayload[COL.motivo] = data.responses.CAREER_RECOLOC_4;
+    if (data.responses.CAREER_MUDAR_1) updatePayload[COL.cargo] = data.responses.CAREER_MUDAR_1;
+    if (data.responses.CAREER_MUDAR_2) updatePayload[COL.remuneracao] = data.responses.CAREER_MUDAR_2;
+    if (data.responses.CAREER_MUDAR_3) updatePayload[COL.motivo] = data.responses.CAREER_MUDAR_3;
+    if (data.responses.CAREER_COMMON_1) updatePayload[COL.historia] = data.responses.CAREER_COMMON_1;
+    if (data.responses.CAREER_COMMON_2) updatePayload[COL.comprometimento_carreira] = data.responses.CAREER_COMMON_2;
+    if (data.responses.CAREER_COMMON_3) updatePayload[COL.comprometimento_investimento] = data.responses.CAREER_COMMON_3;
+    if (data.responses.CAREER_COMMON_4) updatePayload[COL.valor_objetivo] = data.responses.CAREER_COMMON_4;
+    if (data.responses.CAREER_COMMON_5) updatePayload[COL.comprometimento_sessao] = data.responses.CAREER_COMMON_5;
     if (data.responses.CAREER_COMMON_6) updatePayload[COL.urgencia] = data.responses.CAREER_COMMON_6;
+    if (data.responses.CAREER_COMMON_7) updatePayload[COL.impedimentos] = data.responses.CAREER_COMMON_7;
+    if (data.responses.CAREER_COMMON_8) updatePayload[COL.compromisso_presenca] = data.responses.CAREER_COMMON_8;
   }
   updatePayload[COL.last_message_at] = new Date().toISOString();
 
