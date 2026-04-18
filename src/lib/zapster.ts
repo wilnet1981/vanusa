@@ -11,6 +11,9 @@ export async function sendTextMessage(to: string, text: string) {
   console.log(`[ZAPSTER] Enviando mensagem para ${to}...`);
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -22,19 +25,23 @@ export async function sendTextMessage(to: string, text: string) {
         text: text,
         instance_id: ZAPSTER_INSTANCE_ID,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      console.error(`[ZAPSTER] Erro no envio para ${to}:`, JSON.stringify(result, null, 2));
+      console.error(`[ZAPSTER] Erro HTTP ${response.status} ao enviar para ${to}:`, JSON.stringify(result));
       return null;
     }
 
     console.log(`[ZAPSTER] Mensagem enviada com sucesso para ${to}.`);
     return result;
   } catch (error: any) {
-    console.error(`[ZAPSTER] Erro de conexão ao enviar para ${to}:`, error.message);
+    const reason = error.name === 'AbortError' ? 'timeout (8s)' : error.message;
+    console.error(`[ZAPSTER] Erro de conexão ao enviar para ${to}: ${reason}`);
     return null;
   }
 }
