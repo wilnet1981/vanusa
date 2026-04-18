@@ -3,6 +3,10 @@ import { handleIncomingMessage } from '@/lib/flow-engine';
 
 export const maxDuration = 60;
 
+// Debounce: ignora mensagens do mesmo número dentro de 4s após o último processamento
+const lastProcessed = new Map<string, number>();
+const DEBOUNCE_MS = 4000;
+
 export async function POST(req: NextRequest) {
   const url = new URL(req.url);
   console.log(`[WEBHOOK] Recebendo POST em: ${url.pathname}`);
@@ -61,6 +65,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (phone && text) {
+      const now = Date.now();
+      const last = lastProcessed.get(phone) || 0;
+      if (now - last < DEBOUNCE_MS) {
+        console.log(`[WEBHOOK] Debounce — ignorando chunk de ${phone} (${now - last}ms após último processamento).`);
+        return NextResponse.json({ success: true, ignored: 'debounce' });
+      }
+      lastProcessed.set(phone, now);
+
       console.log(`[WEBHOOK] Chamando handleIncomingMessage para ${phone}...`);
       await handleIncomingMessage(phone, text);
       console.log(`[WEBHOOK] handleIncomingMessage concluído para ${phone}.`);
