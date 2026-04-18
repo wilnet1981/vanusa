@@ -8,22 +8,37 @@ const headers = {
 };
 
 async function nocoRequest(path: string, options: RequestInit = {}) {
-  const url = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/${path}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...headers,
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`NocoDB Error [${response.status}] (${path}): ${errorText}`);
+  if (!NOCODB_API_TOKEN || !NOCODB_PROJECT_ID) {
+    console.error(`[NOCODB] ERRO: variáveis de ambiente faltando. TOKEN=${!!NOCODB_API_TOKEN}, PROJECT_ID=${!!NOCODB_PROJECT_ID}`);
     return null;
   }
 
-  return response.json();
+  const url = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/${path}`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...headers, ...options.headers },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[NOCODB] Erro HTTP ${response.status} (${path}): ${errorText}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error: any) {
+    const reason = error.name === 'AbortError' ? 'timeout (7s)' : error.message;
+    console.error(`[NOCODB] Erro de conexão (${path}): ${reason}`);
+    return null;
+  }
 }
 
 export async function findClient(phone: string) {
@@ -60,17 +75,13 @@ export async function createLead(phone: string, initialData: any) {
 export async function updateLead(id: string | number, data: any) {
   const updatePayload: any = { ...data };
   
-  // Se houver responses, mapeamos para colunas específicas e salvamos o JSON bruto
   if (data.responses) {
     updatePayload.raw_data = JSON.stringify(data.responses);
-    
-    // Mapeamento automático para colunas no NocoDB (conforme setup-db.mjs)
     if (data.responses.START) updatePayload.name = data.responses.START;
     if (data.responses.RECOLOCACAO_CARGO) updatePayload.cargo = data.responses.RECOLOCACAO_CARGO;
     if (data.responses.RECOLOCACAO_REMUNERACAO) updatePayload.remuneracao = data.responses.RECOLOCACAO_REMUNERACAO;
     if (data.responses.RECOLOCACAO_INVESTIMENT) updatePayload.investimento = data.responses.RECOLOCACAO_INVESTIMENT;
     if (data.responses.TRIAGE_WISH) updatePayload.objetivo = data.responses.TRIAGE_WISH;
-    // Adicionar outros mapeamentos conforme necessário baseado no script
   }
 
   updatePayload.last_message_at = new Date().toISOString();
@@ -81,7 +92,6 @@ export async function updateLead(id: string | number, data: any) {
   });
 }
 
-// AI Status / Cooldown Management
 export async function getAICooldowns() {
   const data = await nocoRequest('AIStatus');
   const cooldowns: Record<string, number> = {};
@@ -92,7 +102,6 @@ export async function getAICooldowns() {
 }
 
 export async function setAICooldown(providerId: string, until: Date) {
-  // Tenta encontrar o registro
   const existing = await nocoRequest(`AIStatus?where=(provider_id,eq,${providerId})&limit=1`);
   const record = existing?.list?.[0];
 
