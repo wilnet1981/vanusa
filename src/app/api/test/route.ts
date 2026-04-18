@@ -19,22 +19,20 @@ export async function GET(req: NextRequest) {
     zapster: null,
   };
 
-  // Test NocoDB — testar v1 e v2 endpoints
+  // Test NocoDB — listar bases disponíveis na conta (v1 e v2)
   const nocoHeaders = { 'xc-token': NOCODB_API_TOKEN || '', 'Content-Type': 'application/json' };
   try {
-    // Tenta API v2 (nova)
-    const v2Res = await fetch(`${NOCODB_HOST}/api/v2/meta/bases/${NOCODB_PROJECT_ID}/tables`, { headers: nocoHeaders });
-    const v2Body = await v2Res.text();
-    // Tenta criar lead via v2
-    const createV2Res = await fetch(`${NOCODB_HOST}/api/v2/tables/mt1lcy15t45k7oj/records`, {
-      method: 'POST',
-      headers: nocoHeaders,
-      body: JSON.stringify({ phone: 'TEST', status: 'Novo', current_step: 'START', last_message_at: new Date().toISOString(), raw_data: '{}' }),
-    });
-    const createV2Body = await createV2Res.text();
+    const [r1, r2] = await Promise.all([
+      fetch(`${NOCODB_HOST}/api/v1/db/meta/projects/`, { headers: nocoHeaders }),
+      fetch(`${NOCODB_HOST}/api/v2/meta/bases/`, { headers: nocoHeaders }),
+    ]);
+    const [b1, b2] = await Promise.all([r1.text(), r2.text()]);
+    const j1 = JSON.parse(b1); const j2 = JSON.parse(b2);
     results.nocodb = {
-      v2_tables_status: v2Res.status, v2_tables_body: v2Body.slice(0, 200),
-      v2_create_status: createV2Res.status, v2_create_body: createV2Body.slice(0, 200),
+      v1_status: r1.status,
+      v1_bases: j1?.list?.map((b: any) => ({ id: b.id, title: b.title })) || b1.slice(0, 300),
+      v2_status: r2.status,
+      v2_bases: j2?.list?.map((b: any) => ({ id: b.id, title: b.title })) || b2.slice(0, 300),
     };
   } catch (e: any) {
     results.nocodb = { error: e.message };
