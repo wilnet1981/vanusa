@@ -17,9 +17,11 @@ export default function Dashboard() {
       const res = await fetch('/api/dashboard');
       const json = await res.json();
       setData(json);
-      setLoading(false);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      setData({ leads: [], aiStatus: {}, stats: { totalLeads: 0, qualified: 0, clients: 0 } });
+    } finally {
+      setLoading(false);
     }
   };
 
