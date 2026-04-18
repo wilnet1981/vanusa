@@ -1,42 +1,62 @@
 import { updateLead, createLead, findClient, getLead, deleteLead } from './nocodb';
 import { sendTextMessage } from './zapster';
 import { askAI } from './llm-service';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const ADMIN_PHONE = process.env.ADMIN_PHONE || '551151921129';
 
-const STEPS: Record<string, any> = {
-  START: {
-    message: "Olá, tudo bem? 😊\n\nEu sou *Vanusa Grando*, fundadora do Método M.C.E., e ajudo Gestores, Executivos e Conselheiros que buscam Recolocação/Transição de carreira ou MAIS ATUAÇÃO em Conselhos.\nJá ajudei mais de *9.000 profissionais* a se realizarem profissionalmente nos últimos anos com a minha metodologia. 🚀\n\nTudo bem então?! Vamos lá! Para que possamos dar o próximo passo, deixo abaixo algumas perguntas imprescindíveis para que eu possa te conhecer melhor e analisar com minha equipe se realmente faz sentido nossa parceria de sucesso e se poderei te ajudar também!\n\nContamos com a sua *sinceridade* nas respostas, pois elas podem te qualificar ou não para seguirmos para as próximas etapas em nossa possível parceria. 🤝\n\nDesta forma, mantemos as parcerias com resultados e indicadores significativos junto com os profissionais mais comprometidos!\n\n✨ Para te inspirar antes de enviar as respostas, veja algumas recomendações no meu perfil:\nhttps://www.linkedin.com/in/vanusa-grando/details/recommendations/?detailScreenTabIndex=2\n(tanto da área de carreira como de Conselheiros)\n\n👉 *Qual o seu nome?*",
-    next: 'START_EMAIL'
-  },
-  START_EMAIL: { message: "Qual o seu email?", next: 'TRIAGE_WORKING' },
-  TRIAGE_WORKING: { message: "Você está trabalhando no momento?", next: 'TRIAGE_WISH' },
-  TRIAGE_WISH: {
-    message: "Qual o seu maior desejo?\n\n1. Me Recolocar no Mercado\n2. Mudar de empresa\n3. Sou conselheiro e quero atuar em mais Conselhos\n4. Sou empresário e quero marcar uma reunião com conselheiros.",
-    next: 'BRANCHING'
-  },
-  END_EMPRESARIO: { message: "Muito obrigado pelo seu interesse em nossos conselheiros, em breve entraremos em contato.", next: 'END', terminal: true },
-  CONSELHEIRO_ATIVO: { message: "Você já atua em algum conselho atualmente?", next: 'END_CONSELHEIRO' },
-  END_CONSELHEIRO: { message: "Ficamos felizes em poder te ajudar. Em breve entraremos em contato através de outro número.", next: 'END', terminal: true },
-  CAREER_RECOLOC_1: { message: "Qual cargo você tinha na sua última posição?", next: 'CAREER_RECOLOC_2' },
-  CAREER_RECOLOC_2: { message: "Você possui alguma remuneração hoje?", next: 'CAREER_RECOLOC_3' },
-  CAREER_RECOLOC_3: { message: "Você possui uma reserva financeira?", next: 'CAREER_RECOLOC_4' },
-  CAREER_RECOLOC_4: { message: "Me conte o que te trouxe para esta conversa. Conte os detalhes.", next: 'CAREER_COMMON_1' },
-  CAREER_MUDAR_1: { message: "Qual cargo você está atuando no momento?", next: 'CAREER_MUDAR_2' },
-  CAREER_MUDAR_2: { message: "Qual é a sua remuneração em média hoje?", next: 'CAREER_MUDAR_3' },
-  CAREER_MUDAR_3: { message: "Me conte o que te trouxe para esta conversa. Conte os detalhes.", next: 'CAREER_COMMON_1' },
-  CAREER_COMMON_1: { message: "Me conte um resumo de sua história pessoal e seu propósito profissional.", next: 'CAREER_COMMON_2' },
-  CAREER_COMMON_2: { message: "De 1 a 10 o quão comprometido(a) você está em buscar uma ajuda especializada para Movimentar sua carreira Hoje?", next: 'CAREER_COMMON_3' },
-  CAREER_COMMON_3: { message: "De 1 a 10 o quão comprometido(a) você está para investir tempo, dinheiro e empenho em uma parceria para a sua carreira?", next: 'CAREER_COMMON_4' },
-  CAREER_COMMON_4: { message: "QUANTO VALE CHEGAR NO SEU OBJETIVO PROFISSIONAL HOJE?\n\n1. De R$ 0 a R$ 5.700\n2. De R$ 5.700 - R$ 8.300\n3. De R$ 8.300 - R$ 12.500\n4. De R$ 12.500 - R$ 17.800\n5. De R$ 17.800 - R$ 25.100+\n6. Não tem valor, é inestimável", next: 'CAREER_COMMON_5' },
-  END_DESQUALIFICADO: { message: "Você foi desqualificado. A Vanusa vai mandar uma mensagem mais bonitinha, mas por enquanto é isso.", next: 'END_DESQUALIFICADO', terminal: true },
-  CAREER_COMMON_5: { message: "O quão você está Comprometido(a) COM VOCÊ MESMO(a) para seguir em uma Sessão Estratégica comigo e ou minha equipe para o seu Plano de Carreira e Objetivo Profissional hoje?", next: 'CAREER_COMMON_6' },
-  CAREER_COMMON_6: { message: "Qual seu nível de urgência para falar com o nosso time e fazer sua Mentoria Individual de Carreira?\n\n1. Urgente, se possível em 24 h\n2. Urgente, no máximo em 2 dias uteis\n3. Normal, pode ser em até 1 semana\n4. Pouco Urgente, só estou querendo conhecer", next: 'CAREER_COMMON_7' },
-  CAREER_COMMON_7: { message: "O que pode te impedir neste momento de iniciar esta parceria de SUCESSO para transformar sua carreira profissional?", next: 'CAREER_COMMON_8' },
-  CAREER_COMMON_8: { message: "PARABÉNS pelo empenho até aqui, vamos avaliar as suas respostas!\n\nVocê se compromete a estar preparado(a) e presente para a sua Sessão Estratégica no dia e horário agendado?", next: 'END' },
-  END: { message: "Obrigado! Já recebemos suas informações. Analisaremos seu perfil e entraremos em contato em breve. Enquanto isso, veja nossos cases: https://vanusagrando.com/conversa/", next: 'END', terminal: true },
-  POST_END_WAITING: { message: "Você gostaria de tratar de uma nova demanda ou tem uma dúvida pontual?\n\n1. Nova demanda\n2. Dúvida pontual", next: 'POST_END_WAITING', terminal: false },
+// Estrutura do fluxo: define navegação e flags — mensagens vêm do JSON editável
+const FLOW: Record<string, { next: string; terminal?: boolean }> = {
+  START:              { next: 'START_EMAIL' },
+  START_EMAIL:        { next: 'TRIAGE_WORKING' },
+  TRIAGE_WORKING:     { next: 'TRIAGE_WISH' },
+  TRIAGE_WISH:        { next: 'BRANCHING' },
+  END_EMPRESARIO:     { next: 'END', terminal: true },
+  CONSELHEIRO_ATIVO:  { next: 'END_CONSELHEIRO' },
+  END_CONSELHEIRO:    { next: 'END', terminal: true },
+  CAREER_RECOLOC_1:   { next: 'CAREER_RECOLOC_2' },
+  CAREER_RECOLOC_2:   { next: 'CAREER_RECOLOC_3' },
+  CAREER_RECOLOC_3:   { next: 'CAREER_RECOLOC_4' },
+  CAREER_RECOLOC_4:   { next: 'CAREER_COMMON_1' },
+  CAREER_MUDAR_1:     { next: 'CAREER_MUDAR_2' },
+  CAREER_MUDAR_2:     { next: 'CAREER_MUDAR_3' },
+  CAREER_MUDAR_3:     { next: 'CAREER_COMMON_1' },
+  CAREER_COMMON_1:    { next: 'CAREER_COMMON_2' },
+  CAREER_COMMON_2:    { next: 'CAREER_COMMON_3' },
+  CAREER_COMMON_3:    { next: 'CAREER_COMMON_4' },
+  CAREER_COMMON_4:    { next: 'CAREER_COMMON_5' },
+  CAREER_COMMON_5:    { next: 'CAREER_COMMON_6' },
+  CAREER_COMMON_6:    { next: 'CAREER_COMMON_7' },
+  CAREER_COMMON_7:    { next: 'CAREER_COMMON_8' },
+  CAREER_COMMON_8:    { next: 'END' },
+  END:                { next: 'END', terminal: true },
+  END_DESQUALIFICADO: { next: 'END_DESQUALIFICADO', terminal: true },
+  POST_END_WAITING:   { next: 'POST_END_WAITING' },
 };
+
+function getMessages(): Record<string, string> {
+  try {
+    const raw = readFileSync(join(process.cwd(), 'src/lib/messages.config.json'), 'utf-8');
+    const list: { key: string; message: string }[] = JSON.parse(raw);
+    return Object.fromEntries(list.map(m => [m.key, m.message]));
+  } catch {
+    return {};
+  }
+}
+
+function getMessage(key: string): string {
+  const msgs = getMessages();
+  return msgs[key] || `[Mensagem não configurada: ${key}]`;
+}
+
+function getNext(key: string): string {
+  return FLOW[key]?.next || 'END';
+}
+
+function isTerminal(key: string): boolean {
+  return FLOW[key]?.terminal === true;
+}
 
 async function trySendMessage(phone: string, message: string, retries = 2): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
@@ -93,17 +113,17 @@ export async function handleIncomingMessage(phone: string, text: string) {
     } else {
       console.log(`[FLOW] Lead criado para ${phone}, id=${lead.Id || lead.id}`);
     }
-    const sent = await trySendMessage(phone, STEPS.START.message);
+    const sent = await trySendMessage(phone, getMessage('START'));
     if (!sent) console.error(`[FLOW] Falha ao enviar START para ${phone}`);
     return;
   }
 
   const currentStep = lead.current_step;
 
-  // Passo terminal (END concluído) — pergunta se é nova demanda ou dúvida
-  if (STEPS[currentStep]?.terminal || currentStep === 'END') {
+  // Passo terminal — pergunta se é nova demanda ou dúvida
+  if (isTerminal(currentStep) || currentStep === 'END') {
     await updateLead(lead.Id || lead.id, { current_step: 'POST_END_WAITING' });
-    await trySendMessage(phone, STEPS.POST_END_WAITING.message);
+    await trySendMessage(phone, getMessage('POST_END_WAITING'));
     return;
   }
 
@@ -113,12 +133,14 @@ export async function handleIncomingMessage(phone: string, text: string) {
       await deleteLead(lead.Id || lead.id);
       const newLead = await createLead(phone, { current_step: 'START' });
       if (!newLead) console.error(`[FLOW] Falha ao recriar lead para ${phone}`);
-      await trySendMessage(phone, STEPS.START.message);
+      await trySendMessage(phone, getMessage('START'));
     } else {
       await trySendMessage(phone, 'Entendido! Alguém do time da Vanusa Grando entrará em contato com você o mais breve possível. 😊');
     }
     return;
   }
+
+  const currentMessage = getMessage(currentStep);
 
   const systemPrompt = `Você é a assistente da Vanusa Grando Mentoria. Sua função ÚNICA é coletar dados conforme o script.
 REGRAS CRÍTICAS:
@@ -134,7 +156,7 @@ Resposta esperada em JSON:
   "customWarning": string | null
 }
 
-Pergunta feita: "${STEPS[currentStep].message}"
+Pergunta feita: "${currentMessage}"
 Resposta do usuário: "${text}"`;
 
   let result: any;
@@ -149,12 +171,11 @@ Resposta do usuário: "${text}"`;
   }
 
   if (!result.isValid) {
-    const warning = `Desculpe, fui treinada apenas para coletar os dados necessários para sua mentoria. Por favor, responda à pergunta anterior:\n\n${STEPS[currentStep].message}`;
-    await trySendMessage(phone, warning);
+    await trySendMessage(phone, `Desculpe, fui treinada apenas para coletar os dados necessários para sua mentoria. Por favor, responda à pergunta anterior:\n\n${currentMessage}`);
     return;
   }
 
-  let nextStep = STEPS[currentStep].next;
+  let nextStep = getNext(currentStep);
   const updates: any = { responses: { ...lead.responses, [currentStep]: result.extractedValue } };
 
   if (currentStep === 'TRIAGE_WISH') {
@@ -167,15 +188,14 @@ Resposta do usuário: "${text}"`;
 
   if (currentStep === 'CAREER_COMMON_4') {
     const isDisqualified = result.extractedValue.trim() === '1' || result.extractedValue.includes('0 a R$ 5.700') || result.extractedValue.includes('0 a 5.700');
-    const isQualified = !isDisqualified;
     if (isDisqualified) {
       updates.status = 'Desqualificado';
       updates.current_step = 'END_DESQUALIFICADO';
       await updateLead(lead.Id || lead.id, updates).catch((e: any) => console.error('[FLOW] Erro ao salvar desqualificação:', e.message));
-      await trySendMessage(phone, STEPS.END_DESQUALIFICADO.message);
+      await trySendMessage(phone, getMessage('END_DESQUALIFICADO'));
       return;
     }
-    updates.status = isQualified ? 'Qualificado' : 'Não Qualificado';
+    updates.status = 'Qualificado';
   }
 
   updates.current_step = nextStep;
@@ -191,6 +211,6 @@ Resposta do usuário: "${text}"`;
     return;
   }
 
-  const sent = await trySendMessage(phone, STEPS[nextStep].message);
+  const sent = await trySendMessage(phone, getMessage(nextStep));
   if (!sent) console.error(`[FLOW] Falha ao enviar mensagem do passo '${nextStep}' para ${phone}`);
 }

@@ -1,0 +1,152 @@
+[
+  {
+    "key": "START",
+    "name": "Boas-vindas",
+    "description": "Primeira mensagem enviada quando o usuário inicia o contato. Apresenta a Vanusa e pede o nome.",
+    "message": "Olá, tudo bem? 😊\n\nEu sou *Vanusa Grando*, fundadora do Método M.C.E., e ajudo Gestores, Executivos e Conselheiros que buscam Recolocação/Transição de carreira ou MAIS ATUAÇÃO em Conselhos.\nJá ajudei mais de *9.000 profissionais* a se realizarem profissionalmente nos últimos anos com a minha metodologia. 🚀\n\nTudo bem então?! Vamos lá! Para que possamos dar o próximo passo, deixo abaixo algumas perguntas imprescindíveis para que eu possa te conhecer melhor e analisar com minha equipe se realmente faz sentido nossa parceria de sucesso e se poderei te ajudar também!\n\nContamos com a sua *sinceridade* nas respostas, pois elas podem te qualificar ou não para seguirmos para as próximas etapas em nossa possível parceria. 🤝\n\nDesta forma, mantemos as parcerias com resultados e indicadores significativos junto com os profissionais mais comprometidos!\n\n✨ Para te inspirar antes de enviar as respostas, veja algumas recomendações no meu perfil:\nhttps://www.linkedin.com/in/vanusa-grando/details/recommendations/?detailScreenTabIndex=2\n(tanto da área de carreira como de Conselheiros)\n\n👉 *Qual o seu nome?*"
+  },
+  {
+    "key": "START_EMAIL",
+    "name": "Coleta de Email",
+    "description": "Pergunta o email do lead após coletar o nome.",
+    "message": "Qual o seu email?"
+  },
+  {
+    "key": "TRIAGE_WORKING",
+    "name": "Situação Atual",
+    "description": "Pergunta se o lead está trabalhando no momento.",
+    "message": "Você está trabalhando no momento?"
+  },
+  {
+    "key": "TRIAGE_WISH",
+    "name": "Maior Desejo",
+    "description": "Pergunta o objetivo principal do lead. Define o caminho do fluxo (recolocação, mudança, conselheiro ou empresário).",
+    "message": "Qual o seu maior desejo?\n\n1. Me Recolocar no Mercado\n2. Mudar de empresa\n3. Sou conselheiro e quero atuar em mais Conselhos\n4. Sou empresário e quero marcar uma reunião com conselheiros."
+  },
+  {
+    "key": "CONSELHEIRO_ATIVO",
+    "name": "Conselheiro — Atua em Conselho?",
+    "description": "Pergunta se o conselheiro já atua em algum conselho atualmente.",
+    "message": "Você já atua em algum conselho atualmente?"
+  },
+  {
+    "key": "END_CONSELHEIRO",
+    "name": "Encerramento — Conselheiro",
+    "description": "Mensagem de encerramento para perfil de conselheiro.",
+    "message": "Ficamos felizes em poder te ajudar. Em breve entraremos em contato através de outro número."
+  },
+  {
+    "key": "END_EMPRESARIO",
+    "name": "Encerramento — Empresário",
+    "description": "Mensagem de encerramento para perfil de empresário que quer reunião com conselheiros.",
+    "message": "Muito obrigado pelo seu interesse em nossos conselheiros, em breve entraremos em contato."
+  },
+  {
+    "key": "CAREER_RECOLOC_1",
+    "name": "Recolocação — Cargo Anterior",
+    "description": "Pergunta qual era o cargo do lead na última posição (fluxo recolocação).",
+    "message": "Qual cargo você tinha na sua última posição?"
+  },
+  {
+    "key": "CAREER_RECOLOC_2",
+    "name": "Recolocação — Remuneração Atual",
+    "description": "Pergunta se o lead possui remuneração hoje (fluxo recolocação).",
+    "message": "Você possui alguma remuneração hoje?"
+  },
+  {
+    "key": "CAREER_RECOLOC_3",
+    "name": "Recolocação — Reserva Financeira",
+    "description": "Pergunta se o lead possui reserva financeira (fluxo recolocação).",
+    "message": "Você possui uma reserva financeira?"
+  },
+  {
+    "key": "CAREER_RECOLOC_4",
+    "name": "Recolocação — Motivo da Conversa",
+    "description": "Pergunta o que trouxe o lead para a conversa (fluxo recolocação).",
+    "message": "Me conte o que te trouxe para esta conversa. Conte os detalhes."
+  },
+  {
+    "key": "CAREER_MUDAR_1",
+    "name": "Mudança — Cargo Atual",
+    "description": "Pergunta qual cargo o lead está atuando no momento (fluxo mudança de empresa).",
+    "message": "Qual cargo você está atuando no momento?"
+  },
+  {
+    "key": "CAREER_MUDAR_2",
+    "name": "Mudança — Remuneração Atual",
+    "description": "Pergunta a remuneração média atual do lead (fluxo mudança de empresa).",
+    "message": "Qual é a sua remuneração em média hoje?"
+  },
+  {
+    "key": "CAREER_MUDAR_3",
+    "name": "Mudança — Motivo da Conversa",
+    "description": "Pergunta o que trouxe o lead para a conversa (fluxo mudança de empresa).",
+    "message": "Me conte o que te trouxe para esta conversa. Conte os detalhes."
+  },
+  {
+    "key": "CAREER_COMMON_1",
+    "name": "História Pessoal",
+    "description": "Pede um resumo da história pessoal e propósito profissional do lead.",
+    "message": "Me conte um resumo de sua história pessoal e seu propósito profissional."
+  },
+  {
+    "key": "CAREER_COMMON_2",
+    "name": "Comprometimento — Ajuda Especializada",
+    "description": "Mede de 1 a 10 o comprometimento em buscar ajuda especializada.",
+    "message": "De 1 a 10 o quão comprometido(a) você está em buscar uma ajuda especializada para Movimentar sua carreira Hoje?"
+  },
+  {
+    "key": "CAREER_COMMON_3",
+    "name": "Comprometimento — Investimento",
+    "description": "Mede de 1 a 10 o comprometimento em investir tempo, dinheiro e empenho.",
+    "message": "De 1 a 10 o quão comprometido(a) você está para investir tempo, dinheiro e empenho em uma parceria para a sua carreira?"
+  },
+  {
+    "key": "CAREER_COMMON_4",
+    "name": "Valor do Objetivo — Qualificação",
+    "description": "Pergunta quanto vale chegar no objetivo. Opção 1 (R$0-5.700) desqualifica o lead.",
+    "message": "QUANTO VALE CHEGAR NO SEU OBJETIVO PROFISSIONAL HOJE?\n\n1. De R$ 0 a R$ 5.700\n2. De R$ 5.700 - R$ 8.300\n3. De R$ 8.300 - R$ 12.500\n4. De R$ 12.500 - R$ 17.800\n5. De R$ 17.800 - R$ 25.100+\n6. Não tem valor, é inestimável"
+  },
+  {
+    "key": "CAREER_COMMON_5",
+    "name": "Comprometimento — Sessão Estratégica",
+    "description": "Pergunta o comprometimento com a própria sessão estratégica.",
+    "message": "O quão você está Comprometido(a) COM VOCÊ MESMO(a) para seguir em uma Sessão Estratégica comigo e ou minha equipe para o seu Plano de Carreira e Objetivo Profissional hoje?"
+  },
+  {
+    "key": "CAREER_COMMON_6",
+    "name": "Nível de Urgência",
+    "description": "Pergunta com qual urgência o lead quer falar com o time.",
+    "message": "Qual seu nível de urgência para falar com o nosso time e fazer sua Mentoria Individual de Carreira?\n\n1. Urgente, se possível em 24 h\n2. Urgente, no máximo em 2 dias uteis\n3. Normal, pode ser em até 1 semana\n4. Pouco Urgente, só estou querendo conhecer"
+  },
+  {
+    "key": "CAREER_COMMON_7",
+    "name": "Impedimentos",
+    "description": "Pergunta o que pode impedir o lead de iniciar a parceria.",
+    "message": "O que pode te impedir neste momento de iniciar esta parceria de SUCESSO para transformar sua carreira profissional?"
+  },
+  {
+    "key": "CAREER_COMMON_8",
+    "name": "Compromisso Final",
+    "description": "Última pergunta — compromisso de comparecer à sessão estratégica.",
+    "message": "PARABÉNS pelo empenho até aqui, vamos avaliar as suas respostas!\n\nVocê se compromete a estar preparado(a) e presente para a sua Sessão Estratégica no dia e horário agendado?"
+  },
+  {
+    "key": "END",
+    "name": "Encerramento Final",
+    "description": "Mensagem de encerramento enviada após o lead completar todo o fluxo.",
+    "message": "Obrigado! Já recebemos suas informações. Analisaremos seu perfil e entraremos em contato em breve. Enquanto isso, veja nossos cases: https://vanusagrando.com/conversa/"
+  },
+  {
+    "key": "END_DESQUALIFICADO",
+    "name": "Encerramento — Desqualificado",
+    "description": "Mensagem enviada quando o lead escolhe a opção de menor investimento (R$0-5.700).",
+    "message": "Você foi desqualificado. A Vanusa vai mandar uma mensagem mais bonitinha, mas por enquanto é isso."
+  },
+  {
+    "key": "POST_END_WAITING",
+    "name": "Pós-Fluxo — Nova Demanda ou Dúvida",
+    "description": "Enviada quando o lead já completou o fluxo e manda nova mensagem. Pergunta se é nova demanda ou dúvida pontual.",
+    "message": "Você gostaria de tratar de uma nova demanda ou tem uma dúvida pontual?\n\n1. Nova demanda\n2. Dúvida pontual"
+  }
+]
