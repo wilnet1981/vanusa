@@ -6,7 +6,7 @@ const ADMIN_PHONE = process.env.ADMIN_PHONE || '551151921129';
 
 const STEPS: Record<string, any> = {
   START: {
-    message: "Olá, tudo bem? Eu sou Vanusa Grando, fundadora do Método M.C.E., e ajudo executivos e conselheiros que buscam recolocação, transição de carreira ou MAIS ATUAÇÃO. Já ajudei mais de 9.000 profissionais a se realizarem profissionalmente nos últimos anos com a minha metodologia.\n\nTudo bem então?! Vamos lá. Para que possamos dar o próximo passo, deixo abaixo algumas perguntas imprescindíveis para que eu possa te conhecer melhor e analisar com minha equipe se realmente faz sentido nossa parceria de sucesso!\n\nContamos com a sua sinceridade nas respostas, pois elas podem te qualificar ou não para seguirmos para as próximas etapas em nossa possível parceria.\n\nDesta forma, mantemos as parcerias com resultados e indicadores significativos junto com os profissionais mais comprometidos!\n\nPara te inspirar antes de enviar as respostas e realizarmos nossa sessão estratégica, vou deixar aqui alguns cases de super sucesso para você assistir, combinado?! Veja um dos nossos cases de sucesso abaixo da agenda! AQUI: https://vanusagrando.com/conversa/\n\nQual o seu nome e email?",
+    message: "Olá, tudo bem? Eu sou Vanusa Grando, fundadora do Método M.C.E., e ajudo executivos e conselheiros que buscam recolocação, transição de carreira ou MAIS ATUAÇÃO. Já ajudei mais de 9.000 profissionais a se realizarem profissionalmente nos últimos anos com a minha metodologia.\n\nPara que possamos dar o próximo passo, deixo abaixo algumas perguntas para que eu possa te conhecer melhor e analisar com minha equipe se faz sentido nossa parceria!\n\nContamos com a sua sinceridade nas respostas, pois elas podem te qualificar ou não para seguirmos.\n\nVeja um dos nossos cases de sucesso: https://vanusagrando.com/conversa/\n\nQual o seu nome e email?",
     next: 'TRIAGE_WORKING'
   },
   TRIAGE_WORKING: { message: "Você está trabalhando no momento?", next: 'TRIAGE_WISH' },
@@ -80,6 +80,11 @@ export async function handleIncomingMessage(phone: string, text: string) {
   let lead = await getLead(phone);
   if (!lead) {
     lead = await createLead(phone, { current_step: 'START' });
+    if (!lead) {
+      console.error(`[FLOW] createLead falhou para ${phone} — NocoDB não salvou.`);
+    } else {
+      console.log(`[FLOW] Lead criado para ${phone}, id=${lead.Id || lead.id}`);
+    }
     const sent = await trySendMessage(phone, STEPS.START.message);
     if (!sent) console.error(`[FLOW] Falha ao enviar START para ${phone}`);
     return;
