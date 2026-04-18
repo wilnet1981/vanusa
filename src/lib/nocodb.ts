@@ -19,7 +19,7 @@ async function nocoRequest(path: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`NocoDB Error (${path}):`, errorText);
+    console.error(`NocoDB Error [${response.status}] (${path}): ${errorText}`);
     return null;
   }
 
