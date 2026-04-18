@@ -42,13 +42,17 @@ async function nocoRequest(path: string, options: RequestInit = {}) {
   }
 }
 
+const TABLE_CLIENTS = 'vwsn17r5sazxcxbm';
+const TABLE_LEADS = 'vwjferwfr98mfb82';
+const TABLE_AISTATUS = 'vwqrulqkuuf191a8';
+
 export async function findClient(phone: string) {
-  const data = await nocoRequest(`Clients?where=(phone,eq,${phone})&limit=1`);
+  const data = await nocoRequest(`${TABLE_CLIENTS}?where=(phone,eq,${phone})&limit=1`);
   return data?.list?.[0] || null;
 }
 
 export async function getLead(phone: string) {
-  const data = await nocoRequest(`Leads?where=(phone,eq,${phone})&limit=1`);
+  const data = await nocoRequest(`${TABLE_LEADS}?where=(phone,eq,${phone})&limit=1`);
   const lead = data?.list?.[0] || null;
   if (lead && lead.raw_data) {
     lead.responses = JSON.parse(lead.raw_data);
@@ -67,7 +71,7 @@ export async function createLead(phone: string, initialData: any) {
     raw_data: JSON.stringify({}),
     ...initialData
   };
-  return nocoRequest('Leads', {
+  return nocoRequest(TABLE_LEADS, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -87,14 +91,14 @@ export async function updateLead(id: string | number, data: any) {
 
   updatePayload.last_message_at = new Date().toISOString();
 
-  return nocoRequest(`Leads/${id}`, {
+  return nocoRequest(`${TABLE_LEADS}/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(updatePayload),
   });
 }
 
 export async function getAICooldowns() {
-  const data = await nocoRequest('AIStatus');
+  const data = await nocoRequest(TABLE_AISTATUS);
   const cooldowns: Record<string, number> = {};
   data?.list?.forEach((item: any) => {
     cooldowns[item.provider_id] = new Date(item.cooldown_until).getTime();
@@ -103,16 +107,16 @@ export async function getAICooldowns() {
 }
 
 export async function setAICooldown(providerId: string, until: Date) {
-  const existing = await nocoRequest(`AIStatus?where=(provider_id,eq,${providerId})&limit=1`);
+  const existing = await nocoRequest(`${TABLE_AISTATUS}?where=(provider_id,eq,${providerId})&limit=1`);
   const record = existing?.list?.[0];
 
   if (record) {
-    return nocoRequest(`AIStatus/${record.id}`, {
+    return nocoRequest(`${TABLE_AISTATUS}/${record.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ cooldown_until: until.toISOString() }),
     });
   } else {
-    return nocoRequest('AIStatus', {
+    return nocoRequest(TABLE_AISTATUS, {
       method: 'POST',
       body: JSON.stringify({ provider_id: providerId, cooldown_until: until.toISOString() }),
     });
@@ -120,10 +124,10 @@ export async function setAICooldown(providerId: string, until: Date) {
 }
 
 export async function getAllLeads() {
-  const data = await nocoRequest('Leads?sort=-id');
+  const data = await nocoRequest(`${TABLE_LEADS}?sort=-id`);
   return data?.list || [];
 }
 
 export async function deleteLead(id: string | number) {
-  return nocoRequest(`Leads/${id}`, { method: 'DELETE' });
+  return nocoRequest(`${TABLE_LEADS}/${id}`, { method: 'DELETE' });
 }
