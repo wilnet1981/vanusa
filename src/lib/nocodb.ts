@@ -68,6 +68,7 @@ const COL = {
   remuneracao: 'Remuneração',
   investimento: 'Investimento Disponível',
   objetivo: 'Objetivo Principal',
+  email: 'email',
   urgencia: 'Nível de Urgência',
   comprometimento: 'Comprometimento (1-10)',
   last_message_at: 'Última Mensagem',
@@ -115,6 +116,7 @@ export async function updateLead(id: string | number, data: any) {
   if (data.responses) {
     updatePayload[COL.raw_data] = JSON.stringify(data.responses);
     if (data.responses.START) updatePayload[COL.name] = data.responses.START;
+    if (data.responses.START_EMAIL) updatePayload[COL.email] = data.responses.START_EMAIL;
     if (data.responses.CAREER_RECOLOC_1) updatePayload[COL.cargo] = data.responses.CAREER_RECOLOC_1;
     if (data.responses.CAREER_MUDAR_1) updatePayload[COL.cargo] = data.responses.CAREER_MUDAR_1;
     if (data.responses.CAREER_RECOLOC_2) updatePayload[COL.remuneracao] = data.responses.CAREER_RECOLOC_2;

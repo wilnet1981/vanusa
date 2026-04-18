@@ -6,9 +6,10 @@ const ADMIN_PHONE = process.env.ADMIN_PHONE || '551151921129';
 
 const STEPS: Record<string, any> = {
   START: {
-    message: "Olá, tudo bem? Eu sou Vanusa Grando, fundadora do Método M.C.E., e ajudo executivos e conselheiros que buscam recolocação, transição de carreira ou MAIS ATUAÇÃO. Já ajudei mais de 9.000 profissionais a se realizarem profissionalmente nos últimos anos com a minha metodologia.\n\nPara que possamos dar o próximo passo, deixo abaixo algumas perguntas para que eu possa te conhecer melhor e analisar com minha equipe se faz sentido nossa parceria!\n\nContamos com a sua sinceridade nas respostas, pois elas podem te qualificar ou não para seguirmos.\n\nVeja um dos nossos cases de sucesso: https://vanusagrando.com/conversa/\n\nQual o seu nome e email?",
-    next: 'TRIAGE_WORKING'
+    message: "Olá, tudo bem? Eu sou Vanusa Grando, fundadora do Método M.C.E., e ajudo executivos e conselheiros que buscam recolocação, transição de carreira ou MAIS ATUAÇÃO. Já ajudei mais de 9.000 profissionais a se realizarem profissionalmente nos últimos anos com a minha metodologia.\n\nPara que possamos dar o próximo passo, deixo abaixo algumas perguntas para que eu possa te conhecer melhor e analisar com minha equipe se faz sentido nossa parceria!\n\nContamos com a sua sinceridade nas respostas, pois elas podem te qualificar ou não para seguirmos.\n\nVeja um dos nossos cases de sucesso: https://vanusagrando.com/conversa/\n\nQual o seu nome completo?",
+    next: 'START_EMAIL'
   },
+  START_EMAIL: { message: "Qual o seu email?", next: 'TRIAGE_WORKING' },
   TRIAGE_WORKING: { message: "Você está trabalhando no momento?", next: 'TRIAGE_WISH' },
   TRIAGE_WISH: {
     message: "Qual o seu maior desejo?\n\n1. Me Recolocar no Mercado\n2. Mudar de empresa\n3. Sou conselheiro e quero atuar em mais Conselhos\n4. Sou empresário e quero marcar uma reunião com conselheiros.",
@@ -32,7 +33,8 @@ const STEPS: Record<string, any> = {
   CAREER_COMMON_6: { message: "Qual seu nível de urgência para falar com o nosso time e fazer sua Mentoria Individual de Carreira?\n\n1. Urgente, se possível em 24 h\n2. Urgente, no máximo em 2 dias uteis\n3. Normal, pode ser em até 1 semana\n4. Pouco Urgente, só estou querendo conhecer", next: 'CAREER_COMMON_7' },
   CAREER_COMMON_7: { message: "O que pode te impedir neste momento de iniciar esta parceria de SUCESSO para transformar sua carreira profissional?", next: 'CAREER_COMMON_8' },
   CAREER_COMMON_8: { message: "PARABÉNS pelo empenho até aqui, vamos avaliar as suas respostas!\n\nVocê se compromete a estar preparado(a) e presente para a sua Sessão Estratégica no dia e horário agendado?", next: 'END' },
-  END: { message: "Obrigado! Já recebemos suas informações. Analisaremos seu perfil e entraremos em contato em breve. Enquanto isso, veja nossos cases: https://vanusagrando.com/conversa/", next: 'END', terminal: true }
+  END: { message: "Obrigado! Já recebemos suas informações. Analisaremos seu perfil e entraremos em contato em breve. Enquanto isso, veja nossos cases: https://vanusagrando.com/conversa/", next: 'END', terminal: true },
+  POST_END_WAITING: { message: "Você gostaria de tratar de uma nova demanda ou tem uma dúvida pontual?\n\n1. Nova demanda\n2. Dúvida pontual", next: 'POST_END_WAITING', terminal: false },
 };
 
 async function trySendMessage(phone: string, message: string, retries = 2): Promise<boolean> {
@@ -62,6 +64,11 @@ function parseAIResult(text: string) {
   }
 }
 
+function isNewDemand(text: string): boolean {
+  const t = text.toLowerCase().trim();
+  return t === '1' || t.includes('nova') || t.includes('novo') || t.includes('recomeç') || t.includes('reinici');
+}
+
 export async function handleIncomingMessage(phone: string, text: string) {
   if (text.trim().toLowerCase() === '#sair') {
     const existing = await getLead(phone);
@@ -73,7 +80,7 @@ export async function handleIncomingMessage(phone: string, text: string) {
 
   const client = await findClient(phone);
   if (client) {
-    await trySendMessage(phone, `Olá ${client.name}! Sou a assistente da Vanusa. Como você já é nosso aluno, por favor entre em contato pelo número de suporte: ${ADMIN_PHONE}`);
+    await trySendMessage(phone, `Olá ${client['Nome Completo'] || client.name || ''}! Sou a assistente da Vanusa. Como você já é nosso aluno, por favor entre em contato pelo número de suporte: ${ADMIN_PHONE}`);
     return;
   }
 
@@ -92,9 +99,23 @@ export async function handleIncomingMessage(phone: string, text: string) {
 
   const currentStep = lead.current_step;
 
+  // Passo terminal (END concluído) — pergunta se é nova demanda ou dúvida
   if (STEPS[currentStep]?.terminal || currentStep === 'END') {
-    console.log(`[FLOW] Passo terminal '${currentStep}' — reenviando encerramento.`);
-    await trySendMessage(phone, STEPS[currentStep]?.message ?? STEPS.END.message);
+    await updateLead(lead.Id || lead.id, { current_step: 'POST_END_WAITING' });
+    await trySendMessage(phone, STEPS.POST_END_WAITING.message);
+    return;
+  }
+
+  // Aguardando resposta pós-END
+  if (currentStep === 'POST_END_WAITING') {
+    if (isNewDemand(text)) {
+      await deleteLead(lead.Id || lead.id);
+      const newLead = await createLead(phone, { current_step: 'START' });
+      if (!newLead) console.error(`[FLOW] Falha ao recriar lead para ${phone}`);
+      await trySendMessage(phone, STEPS.START.message);
+    } else {
+      await trySendMessage(phone, 'Entendido! Alguém do time da Vanusa Grando entrará em contato com você o mais breve possível. 😊');
+    }
     return;
   }
 
