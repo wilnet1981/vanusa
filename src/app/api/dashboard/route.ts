@@ -3,21 +3,16 @@ import { getAllLeads, getAICooldowns } from '@/lib/nocodb';
 
 export async function GET() {
   try {
-    const leads = await getAllLeads();
-    const aiStatus = await getAICooldowns();
+    const [leads, aiStatus] = await Promise.all([
+      getAllLeads().catch(() => []),
+      getAICooldowns().catch(() => ({})),
+    ]);
 
     // Formatar leads para o dashboard
-    const formattedLeads = leads.map((l: any) => {
+    const formattedLeads = (leads || []).map((l: any) => {
       let responses = {};
-      try {
-        responses = l.raw_data ? JSON.parse(l.raw_data) : {};
-      } catch (e) {
-        console.error('Erro ao parsear raw_data do lead:', l.id);
-      }
-      return {
-        ...l,
-        responses
-      };
+      try { responses = l['Dados Brutos (JSON)'] ? JSON.parse(l['Dados Brutos (JSON)']) : {}; } catch {}
+      return { ...l, responses };
     });
 
     return NextResponse.json({
@@ -31,6 +26,6 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Dashboard API Error:', error.message);
-    return NextResponse.json({ error: 'Failed to load dashboard data' }, { status: 500 });
+    return NextResponse.json({ leads: [], aiStatus: {}, stats: { totalLeads: 0, qualified: 0, clients: 0 } });
   }
 }
