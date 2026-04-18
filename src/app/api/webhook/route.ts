@@ -42,7 +42,18 @@ export async function POST(req: NextRequest) {
     console.log(`[WEBHOOK] Extraído -> Fone: ${phone}, Texto: ${text}, Instância: ${instanceId}`);
 
     if (phone && text) {
-      const isFromMe = payload.data?.fromMe || payload.fromMe || false;
+      const isFromMe =
+        payload.data?.fromMe === true ||
+        payload.fromMe === true ||
+        payload.data?.from_me === true ||
+        payload.from_me === true ||
+        payload.type === 'outgoing' ||
+        payload.data?.type === 'outgoing' ||
+        payload.direction === 'outbound' ||
+        payload.data?.direction === 'outbound';
+
+      console.log(`[WEBHOOK] fromMe=${isFromMe}, payload.data.fromMe=${payload.data?.fromMe}, payload.fromMe=${payload.fromMe}, type=${payload.type || payload.data?.type}`);
+
       if (!isFromMe) {
         console.log(`[WEBHOOK] Chamando handleIncomingMessage para ${phone}...`);
         await handleIncomingMessage(phone, text);
