@@ -7,39 +7,50 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-async function nocoRequest(path: string, options: RequestInit = {}) {
+async function nocoRequest(path: string, options: RequestInit = {}, retries = 3) {
   if (!NOCODB_API_TOKEN || !NOCODB_PROJECT_ID) {
     console.error(`[NOCODB] ERRO: variáveis de ambiente faltando. TOKEN=${!!NOCODB_API_TOKEN}, PROJECT_ID=${!!NOCODB_PROJECT_ID}`);
     return null;
   }
 
   const url = `${NOCODB_HOST}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}/${path}`;
-  console.log(`[NOCODB] URL: ${url}`);
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 7000);
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
 
-    const response = await fetch(url, {
-      ...options,
-      headers: { ...headers, ...options.headers },
-      signal: controller.signal,
-    });
+      const response = await fetch(url, {
+        ...options,
+        headers: { ...headers, ...options.headers },
+        signal: controller.signal,
+      });
 
-    clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[NOCODB] Erro HTTP ${response.status} (${path}): ${errorText}`);
+      if (response.status === 429) {
+        const wait = attempt * 1500;
+        console.warn(`[NOCODB] 429 rate limit (${path}), tentativa ${attempt}/${retries}, aguardando ${wait}ms...`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[NOCODB] Erro HTTP ${response.status} (${path}): ${errorText}`);
+        return null;
+      }
+
+      return response.json();
+    } catch (error: any) {
+      const reason = error.name === 'AbortError' ? 'timeout (7s)' : error.message;
+      console.error(`[NOCODB] Erro de conexão (${path}): ${reason}`);
       return null;
     }
-
-    return response.json();
-  } catch (error: any) {
-    const reason = error.name === 'AbortError' ? 'timeout (7s)' : error.message;
-    console.error(`[NOCODB] Erro de conexão (${path}): ${reason}`);
-    return null;
   }
+
+  console.error(`[NOCODB] Todas as tentativas falharam para ${path}`);
+  return null;
 }
 
 const TABLE_CLIENTS = 'mx8qhy2dx2owmt8';
