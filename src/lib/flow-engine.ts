@@ -3,6 +3,7 @@ import { sendTextMessage } from './zapster';
 import { askAI } from './llm-service';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { logMessage } from './conversation-store';
 
 const ADMIN_PHONE = process.env.ADMIN_PHONE || '551151921129';
 
@@ -58,10 +59,24 @@ function isTerminal(key: string): boolean {
   return FLOW[key]?.terminal === true;
 }
 
+const CLOSING_PHRASES = [
+  'ok', 'okay', 'combinado', 'certo', 'entendido', 'perfeito', 'ótimo', 'otimo',
+  'obrigado', 'obrigada', 'valeu', 'vlw', 'tmj', 'tudo bem', 'tá', 'ta', 'até',
+  'ate', 'tchau', 'flw', 'abraços', 'abracos', '👍', '🙏', '😊', '✅', '👌',
+];
+
+function isClosingMessage(text: string): boolean {
+  const t = text.toLowerCase().trim().replace(/[!.,;]/g, '');
+  return CLOSING_PHRASES.some(p => t === p || t.startsWith(p + ' ') || t.endsWith(' ' + p)) && t.length < 30;
+}
+
 async function trySendMessage(phone: string, message: string, retries = 2): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
     const result = await sendTextMessage(phone, message);
-    if (result !== null) return true;
+    if (result !== null) {
+      logMessage(phone, 'bot', message);
+      return true;
+    }
     console.warn(`[FLOW] Tentativa ${i + 1} de envio falhou. ${i + 1 < retries ? 'Tentando novamente...' : 'Desistindo.'}`);
   }
   return false;
@@ -91,6 +106,8 @@ function isNewDemand(text: string): boolean {
 }
 
 export async function handleIncomingMessage(phone: string, text: string) {
+  logMessage(phone, 'user', text);
+
   if (text.trim().toLowerCase() === '#sair') {
     const existing = await getLead(phone);
     if (existing) await deleteLead(existing.Id || existing.id);
@@ -120,8 +137,12 @@ export async function handleIncomingMessage(phone: string, text: string) {
 
   const currentStep = lead.current_step;
 
-  // Passo terminal — pergunta se é nova demanda ou dúvida
+  // Passo terminal — se for mensagem de encerramento, ignora silenciosamente
   if (isTerminal(currentStep) || currentStep === 'END') {
+    if (isClosingMessage(text)) {
+      console.log(`[FLOW] Mensagem de encerramento de ${phone} — sem resposta.`);
+      return;
+    }
     await updateLead(lead.Id || lead.id, { current_step: 'POST_END_WAITING' });
     await trySendMessage(phone, getMessage('POST_END_WAITING'));
     return;

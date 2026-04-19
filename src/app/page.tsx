@@ -104,7 +104,7 @@ export default function Dashboard() {
       </header>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #333' }}>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #333', alignItems: 'center' }}>
         <button
           onClick={() => setTab('leads')}
           style={{
@@ -127,6 +127,12 @@ export default function Dashboard() {
         >
           Mensagens do Bot
         </button>
+        <a
+          href="/conversations"
+          style={{ marginLeft: 'auto', background: '#075e54', color: '#fff', padding: '0.4rem 1.1rem', borderRadius: '6px', textDecoration: 'none', fontSize: '0.85rem' }}
+        >
+          💬 Ver Conversas
+        </a>
       </div>
 
       {tab === 'leads' && (
