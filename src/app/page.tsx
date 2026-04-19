@@ -66,7 +66,7 @@ export default function Dashboard() {
     return lastB.localeCompare(lastA);
   });
 
-  if (loading) return <main><div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><p>Carregando...</p></div></main>;
+  if (loading) return <main><div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><p suppressHydrationWarning>Carregando...</p></div></main>;
 
   return (
     <main>
