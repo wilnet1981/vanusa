@@ -1,31 +1,44 @@
 import { NextResponse } from 'next/server';
-import { getAllLeads, getAICooldowns } from '@/lib/nocodb';
+import { getAllLeads } from '@/lib/nocodb';
 
 export async function GET() {
   try {
-    const [leads, aiStatus] = await Promise.all([
-      getAllLeads().catch(() => []),
-      getAICooldowns().catch(() => ({})),
-    ]);
+    const leads = await getAllLeads().catch(() => []);
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    // Formatar leads para o dashboard
     const formattedLeads = (leads || []).map((l: any) => {
       let responses = {};
       try { responses = l['Dados Brutos (JSON)'] ? JSON.parse(l['Dados Brutos (JSON)']) : {}; } catch {}
       return { ...l, responses };
     });
 
+    const leadsThisWeek = formattedLeads.filter((l: any) => {
+      const created = l['CreatedAt'] ? new Date(l['CreatedAt']).getTime() : 0;
+      return created >= weekAgo;
+    }).length;
+
+    const qualifiedThisWeek = formattedLeads.filter((l: any) => {
+      const created = l['CreatedAt'] ? new Date(l['CreatedAt']).getTime() : 0;
+      return created >= weekAgo && l['Status'] === 'Qualificado';
+    }).length;
+
+    const conversionRate = leadsThisWeek > 0
+      ? Math.round((qualifiedThisWeek / leadsThisWeek) * 100)
+      : 0;
+
     return NextResponse.json({
       leads: formattedLeads,
-      aiStatus,
       stats: {
         totalLeads: formattedLeads.length,
-        qualified: formattedLeads.filter((l: any) => l.status === 'Qualificado').length,
-        clients: 0 // Placeholder para Clientes (podemos expandir buscando na tabela Clients)
+        qualified: formattedLeads.filter((l: any) => l['Status'] === 'Qualificado').length,
+        leadsThisWeek,
+        qualifiedThisWeek,
+        conversionRate,
       }
     });
   } catch (error: any) {
     console.error('Dashboard API Error:', error.message);
-    return NextResponse.json({ leads: [], aiStatus: {}, stats: { totalLeads: 0, qualified: 0, clients: 0 } });
+    return NextResponse.json({ leads: [], stats: { totalLeads: 0, qualified: 0, leadsThisWeek: 0, qualifiedThisWeek: 0, conversionRate: 0 } });
   }
 }

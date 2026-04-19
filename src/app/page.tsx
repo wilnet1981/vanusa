@@ -2,284 +2,235 @@
 
 import { useEffect, useState } from 'react';
 
+const STEP_LABELS: Record<string, string> = {
+  START: 'Boas-vindas', START_EMAIL: 'Email', TRIAGE_WORKING: 'Situação Atual',
+  TRIAGE_WISH: 'Maior Desejo', CONSELHEIRO_ATIVO: 'Conselheiro', END_CONSELHEIRO: 'Encerrado (Conselheiro)',
+  END_EMPRESARIO: 'Encerrado (Empresário)', CAREER_RECOLOC_1: 'Cargo Anterior',
+  CAREER_RECOLOC_2: 'Remuneração', CAREER_RECOLOC_3: 'Reserva Financeira',
+  CAREER_RECOLOC_4: 'Motivo', CAREER_MUDAR_1: 'Cargo Atual', CAREER_MUDAR_2: 'Remuneração',
+  CAREER_MUDAR_3: 'Motivo', CAREER_COMMON_1: 'História Pessoal', CAREER_COMMON_2: 'Comprometimento (1)',
+  CAREER_COMMON_3: 'Comprometimento (2)', CAREER_COMMON_4: 'Valor do Objetivo',
+  CAREER_COMMON_5: 'Comprometimento Sessão', CAREER_COMMON_6: 'Urgência',
+  CAREER_COMMON_7: 'Impedimentos', CAREER_COMMON_8: 'Compromisso Final',
+  END: 'Concluído', END_DESQUALIFICADO: 'Desqualificado', POST_END_WAITING: 'Aguardando',
+};
+
 export default function Dashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'leads' | 'messages'>('leads');
+  const [tab, setTab] = useState<'leads' | 'messages' | 'conversations'>('leads');
   const [messages, setMessages] = useState<any[]>([]);
+  const [convs, setConvs] = useState<Record<string, any[]>>({});
+  const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState('');
 
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/dashboard');
-      const json = await res.json();
-      setData(json);
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setData({ leads: [], aiStatus: {}, stats: { totalLeads: 0, qualified: 0, clients: 0 } });
-    } finally {
-      setLoading(false);
-    }
+  const fetchAll = async () => {
+    const [d, m, c] = await Promise.all([
+      fetch('/api/dashboard').then(r => r.json()).catch(() => ({ leads: [], stats: {} })),
+      fetch('/api/messages').then(r => r.json()).catch(() => []),
+      fetch('/api/conversations').then(r => r.json()).catch(() => ({})),
+    ]);
+    setData(d); setMessages(m); setConvs(c);
+    setLoading(false);
   };
 
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch('/api/messages');
-      const json = await res.json();
-      setMessages(json);
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    fetchMessages();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const startEdit = (msg: any) => {
-    setEditingKey(msg.key);
-    setEditValue(msg.message);
-    setSaveStatus('');
-  };
-
-  const cancelEdit = () => {
-    setEditingKey(null);
-    setEditValue('');
-    setSaveStatus('');
-  };
+  useEffect(() => { fetchAll(); const i = setInterval(fetchAll, 5000); return () => clearInterval(i); }, []);
 
   const saveMessage = async (key: string) => {
     setSaving(true);
     const updated = messages.map(m => m.key === key ? { ...m, message: editValue } : m);
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-      if (res.ok) {
-        setMessages(updated);
-        setEditingKey(null);
-        setSaveStatus('');
-      } else {
-        setSaveStatus('Erro ao salvar.');
-      }
-    } catch {
-      setSaveStatus('Erro ao salvar.');
-    }
+    const res = await fetch('/api/messages', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+    if (res.ok) { setMessages(updated); setEditingKey(null); }
     setSaving(false);
   };
 
-  if (loading || !data) {
-    return (
-      <main>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-          <p>Carregando Dashboard da Vanusa Grando...</p>
-        </div>
-      </main>
-    );
-  }
+  const statusColor: Record<string, string> = { Qualificado: '#22c55e', Desqualificado: '#ef4444', 'Não Qualificado': '#f59e0b', Novo: '#888' };
+  const tabStyle = (t: string) => ({
+    background: 'none', border: 'none', cursor: 'pointer', padding: '0.75rem 1.25rem',
+    color: tab === t ? '#a78bfa' : '#888',
+    borderBottom: tab === t ? '2px solid #a78bfa' : '2px solid transparent',
+    fontSize: '0.95rem', fontWeight: tab === t ? 600 : 400,
+  } as React.CSSProperties);
 
-  const providers = [
-    { id: 'cloudflare', name: 'Cloudflare' },
-    { id: 'groq', name: 'Groq' },
-    { id: 'mistral', name: 'Mistral' },
-    { id: 'deepseek', name: 'Deepseek' },
-    { id: 'gemini', name: 'Gemini' },
-    { id: 'openai', name: 'OpenAI' },
-    { id: 'anthropic', name: 'Anthropic' },
-  ];
+  const formatTime = (ts: string) => new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const getName = (phone: string) => {
+    const lead = data?.leads?.find((l: any) => (l['Telefone'] || '').replace(/\D/g, '') === phone);
+    return lead?.['Nome Completo'] || phone;
+  };
+
+  const phones = Object.keys(convs).sort((a, b) => {
+    const lastA = convs[a].at(-1)?.timestamp || '';
+    const lastB = convs[b].at(-1)?.timestamp || '';
+    return lastB.localeCompare(lastA);
+  });
+
+  if (loading) return <main><div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><p>Carregando...</p></div></main>;
 
   return (
     <main>
-      <header style={{ marginBottom: '2rem' }}>
+      <header style={{ marginBottom: '1.5rem' }}>
         <h1>Assistente Vanusa Grando</h1>
-        <p style={{ color: '#888' }}>Dashboard de Controle e Leads</p>
+        <p style={{ color: '#888', margin: 0 }}>Dashboard de Controle</p>
       </header>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #333', alignItems: 'center' }}>
-        <button
-          onClick={() => setTab('leads')}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '0.75rem 1.5rem',
-            color: tab === 'leads' ? 'var(--accent, #a78bfa)' : '#888',
-            borderBottom: tab === 'leads' ? '2px solid var(--accent, #a78bfa)' : '2px solid transparent',
-            fontSize: '1rem', fontWeight: tab === 'leads' ? 600 : 400,
-          }}
-        >
-          Leads & Status
-        </button>
-        <button
-          onClick={() => setTab('messages')}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '0.75rem 1.5rem',
-            color: tab === 'messages' ? 'var(--accent, #a78bfa)' : '#888',
-            borderBottom: tab === 'messages' ? '2px solid var(--accent, #a78bfa)' : '2px solid transparent',
-            fontSize: '1rem', fontWeight: tab === 'messages' ? 600 : 400,
-          }}
-        >
-          Mensagens do Bot
-        </button>
-        <a
-          href="/conversations"
-          style={{ marginLeft: 'auto', background: '#075e54', color: '#fff', padding: '0.4rem 1.1rem', borderRadius: '6px', textDecoration: 'none', fontSize: '0.85rem' }}
-        >
-          💬 Ver Conversas
-        </a>
+      <div style={{ display: 'flex', gap: 0, marginBottom: '2rem', borderBottom: '1px solid #333' }}>
+        <button style={tabStyle('leads')} onClick={() => setTab('leads')}>Leads & Status</button>
+        <button style={tabStyle('messages')} onClick={() => setTab('messages')}>Mensagens do Bot</button>
+        <button style={tabStyle('conversations')} onClick={() => setTab('conversations')}>💬 Conversas</button>
       </div>
 
+      {/* ── LEADS ── */}
       {tab === 'leads' && (
         <>
-          <div className="stats-grid">
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
             <div className="stat-item">
-              <span className="stat-value">{data.stats.totalLeads}</span>
+              <span className="stat-value">{data?.stats?.totalLeads ?? 0}</span>
               <span className="stat-label">Total de Leads</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value" style={{ color: 'var(--success)' }}>{data.stats.qualified}</span>
+              <span className="stat-value" style={{ color: '#22c55e' }}>{data?.stats?.qualified ?? 0}</span>
               <span className="stat-label">Qualificados</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value" style={{ color: 'var(--accent)' }}>{data.stats.clients}</span>
-              <span className="stat-label">Clientes Ativos</span>
+              <span className="stat-value" style={{ color: '#a78bfa' }}>{data?.stats?.leadsThisWeek ?? 0}</span>
+              <span className="stat-label">Novos Leads / Semana</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value" style={{ color: '#22c55e' }}>{data?.stats?.qualifiedThisWeek ?? 0}</span>
+              <span className="stat-label">Novos Clientes / Semana</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value" style={{ color: '#f59e0b' }}>{data?.stats?.conversionRate ?? 0}%</span>
+              <span className="stat-label">% Conversão Semana</span>
             </div>
           </div>
 
-          <div className="dashboard-grid">
-            <section>
-              <div className="card">
-                <h2 className="card-title">Leads Recentes</h2>
-                <div className="lead-list">
-                  {data.leads.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>Nenhum lead capturado ainda.</p>
-                  ) : (
-                    data.leads.map((lead: any) => (
-                      <div key={lead.Id || lead.id} className="lead-item">
-                        <div className="lead-header">
-                          <strong style={{ fontSize: '1.1rem' }}>{lead['Nome Completo'] || lead.responses?.START || 'Lead Sem Nome'}</strong>
-                          <span className={`badge ${
-                            lead['Status'] === 'Qualificado' ? 'badge-qualified' :
-                            lead['Status'] === 'Não Qualificado' ? 'badge-unqualified' :
-                            lead['Status'] === 'Desqualificado' ? 'badge-unqualified' : 'badge-new'
-                          }`}>
-                            {lead['Status'] || 'Novo'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: '#aaa', display: 'flex', gap: '1rem' }}>
-                          <span>📱 {lead['Telefone'] || lead.phone}</span>
-                          <span>🔄 Passo: {lead['Passo Atual'] || lead.current_step}</span>
-                        </div>
-                        {lead['Objetivo Principal'] && (
-                          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#888' }}>
-                            Desejo: {lead['Objetivo Principal']}
-                          </div>
-                        )}
+          <div className="card" style={{ marginTop: '1.5rem' }}>
+            <h2 className="card-title">Leads Recentes</h2>
+            <div className="lead-list">
+              {(data?.leads || []).length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>Nenhum lead ainda.</p>
+              ) : (
+                (data?.leads || []).map((lead: any) => (
+                  <div key={lead.Id || lead.id} className="lead-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong>{lead['Nome Completo'] || '—'}</strong>
+                      <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
+                        📱 {lead['Telefone']} &nbsp;·&nbsp; {STEP_LABELS[lead['Passo Atual']] || lead['Passo Atual'] || '—'}
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </section>
-
-            <aside>
-              <div className="card">
-                <h2 className="card-title">Status das IAs (Failover)</h2>
-                <div className="ai-list">
-                  {providers.map((p) => {
-                    const cooldown = data.aiStatus[p.id];
-                    const isDown = cooldown && (Date.now() - cooldown < 24 * 60 * 60 * 1000);
-                    return (
-                      <div key={p.id} className="ai-item">
-                        <span>{p.name}</span>
-                        <span className={isDown ? 'ai-status-cooldown' : 'ai-status-active'}>
-                          {isDown ? 'Cooldown (24h)' : 'Ativa'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="card">
-                <h2 className="card-title">Webhooks</h2>
-                <p style={{ fontSize: '0.85rem', color: '#888' }}>
-                  Status: <span style={{ color: 'var(--success)' }}>Ativo</span>
-                </p>
-              </div>
-            </aside>
+                    </div>
+                    <span className={`badge ${lead['Status'] === 'Qualificado' ? 'badge-qualified' : lead['Status'] === 'Não Qualificado' || lead['Status'] === 'Desqualificado' ? 'badge-unqualified' : 'badge-new'}`}>
+                      {lead['Status'] || 'Novo'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </>
       )}
 
+      {/* ── MENSAGENS ── */}
       {tab === 'messages' && (
         <div>
-          <p style={{ color: '#888', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-            Edite as mensagens enviadas pelo bot. As alterações entram em vigor imediatamente.
-          </p>
+          <p style={{ color: '#888', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Edite as mensagens enviadas pelo bot. Alterações entram em vigor imediatamente.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {messages.map((msg) => (
+            {messages.map(msg => (
               <div key={msg.key} className="card" style={{ padding: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <div>
-                    <strong style={{ fontSize: '1rem' }}>{msg.name}</strong>
+                    <strong>{msg.name}</strong>
                     <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: '#666', fontFamily: 'monospace', background: '#1a1a1a', padding: '2px 6px', borderRadius: '4px' }}>{msg.key}</span>
                     <p style={{ fontSize: '0.8rem', color: '#777', margin: '0.25rem 0 0' }}>{msg.description}</p>
                   </div>
                   {editingKey !== msg.key && (
-                    <button
-                      onClick={() => startEdit(msg)}
-                      style={{ background: 'var(--accent, #a78bfa)', border: 'none', color: '#fff', padding: '0.4rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-                    >
+                    <button onClick={() => { setEditingKey(msg.key); setEditValue(msg.message); }}
+                      style={{ background: '#a78bfa', border: 'none', color: '#fff', padding: '0.4rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>
                       Editar
                     </button>
                   )}
                 </div>
-
                 {editingKey === msg.key ? (
                   <div>
-                    <textarea
-                      value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
-                      style={{
-                        width: '100%', minHeight: '120px', background: '#111', color: '#fff',
-                        border: '1px solid #444', borderRadius: '6px', padding: '0.75rem',
-                        fontSize: '0.9rem', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
-                      }}
-                    />
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', alignItems: 'center' }}>
-                      <button
-                        onClick={() => saveMessage(msg.key)}
-                        disabled={saving}
-                        style={{ background: '#22c55e', border: 'none', color: '#fff', padding: '0.4rem 1.2rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
-                      >
+                    <textarea value={editValue} onChange={e => setEditValue(e.target.value)}
+                      style={{ width: '100%', minHeight: '120px', background: '#111', color: '#fff', border: '1px solid #444', borderRadius: '6px', padding: '0.75rem', fontSize: '0.9rem', resize: 'vertical', boxSizing: 'border-box' }} />
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                      <button onClick={() => saveMessage(msg.key)} disabled={saving}
+                        style={{ background: '#22c55e', border: 'none', color: '#fff', padding: '0.4rem 1.2rem', borderRadius: '6px', cursor: 'pointer' }}>
                         {saving ? 'Salvando...' : 'Salvar'}
                       </button>
-                      <button
-                        onClick={cancelEdit}
-                        style={{ background: '#333', border: 'none', color: '#aaa', padding: '0.4rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
-                      >
+                      <button onClick={() => setEditingKey(null)}
+                        style={{ background: '#333', border: 'none', color: '#aaa', padding: '0.4rem 1rem', borderRadius: '6px', cursor: 'pointer' }}>
                         Cancelar
                       </button>
-                      {saveStatus && <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>{saveStatus}</span>}
                     </div>
                   </div>
                 ) : (
-                  <pre style={{
-                    background: '#111', padding: '0.75rem', borderRadius: '6px', fontSize: '0.82rem',
-                    color: '#ccc', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, maxHeight: '120px', overflow: 'auto',
-                  }}>
+                  <pre style={{ background: '#111', padding: '0.75rem', borderRadius: '6px', fontSize: '0.82rem', color: '#ccc', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, maxHeight: '120px', overflow: 'auto' }}>
                     {msg.message}
                   </pre>
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── CONVERSAS ── */}
+      {tab === 'conversations' && (
+        <div style={{ display: 'flex', height: 'calc(100vh - 220px)', border: '1px solid #222', borderRadius: '10px', overflow: 'hidden' }}>
+          {/* Sidebar */}
+          <div style={{ width: '280px', borderRight: '1px solid #222', overflowY: 'auto', flexShrink: 0 }}>
+            {phones.length === 0 && <p style={{ color: '#555', textAlign: 'center', marginTop: '2rem', fontSize: '0.85rem' }}>Nenhuma conversa</p>}
+            {phones.map(phone => {
+              const last = convs[phone].at(-1);
+              const lead = data?.leads?.find((l: any) => (l['Telefone'] || '').replace(/\D/g, '') === phone);
+              const name = lead?.['Nome Completo'] || phone;
+              const status = lead?.['Status'];
+              return (
+                <div key={phone} onClick={() => setSelectedConv(phone)}
+                  style={{ padding: '0.85rem 1rem', cursor: 'pointer', borderBottom: '1px solid #1a1a1a', background: selectedConv === phone ? '#1e1e2e' : 'transparent' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <strong style={{ fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>{name}</strong>
+                    {status && <span style={{ fontSize: '0.65rem', color: statusColor[status] || '#888' }}>● {status}</span>}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#555', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {last ? (last.from === 'bot' ? '🤖 ' : '👤 ') + last.text.slice(0, 40) : ''}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Chat */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d0d' }}>
+            {!selectedConv ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
+                <div style={{ textAlign: 'center' }}><div style={{ fontSize: '2.5rem' }}>💬</div><p>Selecione uma conversa</p></div>
+              </div>
+            ) : (
+              <>
+                <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid #222' }}>
+                  <strong>{getName(selectedConv)}</strong>
+                  <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: '#555' }}>{selectedConv}</span>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {(convs[selectedConv] || []).map((msg, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: msg.from === 'bot' ? 'flex-end' : 'flex-start' }}>
+                      <div style={{
+                        maxWidth: '65%', padding: '0.5rem 0.85rem', borderRadius: msg.from === 'bot' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                        background: msg.from === 'bot' ? '#075e54' : '#1e1e1e', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                      }}>
+                        {msg.text}
+                        <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.35)', textAlign: 'right', marginTop: '3px' }}>{formatTime(msg.timestamp)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
